@@ -1,0 +1,12 @@
+﻿[afsio]
+debug = 1
+
+[afs2fs]
+debug = 1
+
+[kload]
+dll = afsio.dll
+dll = afs2fs.dll
+
+
+

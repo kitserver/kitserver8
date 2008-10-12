@@ -1,0 +1,6 @@
+# Song names map
+# Format: <binId>, "<name>", "<author>" 
+# Note that double quotes are required.
+# (possible IDs: 91-150)
+
+104,"Vne zony dostupa","Gorod 007"
