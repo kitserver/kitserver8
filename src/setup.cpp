@@ -58,7 +58,7 @@ void MyMessageBox(wchar_t* fmt, DWORD value)
 	wchar_t buf[BUFLEN];
 	ZeroMemory(buf, WBUFLEN);
 	swprintf(buf, fmt, value);
-	MessageBox(hWnd, buf, L"KitServer 7 DEBUG MyMessage", 0);
+	MessageBox(hWnd, buf, L"KitServer 8 DEBUG MyMessage", 0);
 #endif
 }
 
@@ -69,7 +69,7 @@ void MyMessageBox2(wchar_t* fmt, wchar_t* value)
 	wchar_t buf[BUFLEN];
 	ZeroMemory(buf, WBUFLEN);
 	swprintf(buf, fmt, value);
-	MessageBox(hWnd, buf, L"KitServer 7 DEBUG MyMessage", 0);
+	MessageBox(hWnd, buf, L"KitServer 8 DEBUG MyMessage", 0);
 #endif
 }
 
@@ -277,7 +277,7 @@ Couldn't find LoadLibraryA in\n\
 					ZeroMemory(buf, WBUFLEN);
 					swprintf(buf, L"\
 ======== INFORMATION! =========\n\
-KitServer 7 is already installed (1) for\n\
+KitServer 8 is already installed (1) for\n\
 %s.", fileName);
 	
 					wcscat(outmsg, buf);
@@ -355,7 +355,7 @@ KitServer 7 is already installed (1) for\n\
 					ZeroMemory(buf, WBUFLEN);
 					swprintf(buf, L"\
 ======== INFORMATION! =========\n\
-KitServer 7 is already installed (2) for\n\
+KitServer 8 is already installed (2) for\n\
 %s.", fileName);
 	
 					wcscat(outmsg, buf);
@@ -385,7 +385,7 @@ KitServer 7 is already installed (2) for\n\
 			ZeroMemory(buf, WBUFLEN);
 			swprintf(buf, L"\
 ======== SUCCESS! =========\n\
-Setup has installed KitServer 7 for\n\
+Setup has installed KitServer 8 for\n\
 %s.", fileName);
 	
 			wcscat(outmsg, buf);
@@ -398,7 +398,7 @@ Setup has installed KitServer 7 for\n\
 			ZeroMemory(buf, WBUFLEN);
 			swprintf(buf, L"\
 ======== ERROR! =========\n\
-Setup failed to install KitServer 7 for\n\
+Setup failed to install KitServer 8 for\n\
 %s.\n\
 \n\
 (No modifications made.)\n\
@@ -527,7 +527,7 @@ bool RemoveKserv(wstring& gfile, wstring& sfile, wstring& outs, const bool quiet
 					ZeroMemory(buf, WBUFLEN);
 					swprintf(buf, L"\
 ======== INFORMATION! =========\n\
-KitServer 7 is not installed for\n\
+KitServer 8 is not installed for\n\
 %s.", fileName);
 	
 					wcscat(outmsg, buf);
@@ -608,7 +608,7 @@ KitServer 7 is not installed for\n\
 			ZeroMemory(buf, WBUFLEN);
 			swprintf(buf, L"\
 ======== SUCCESS! =========\n\
-Setup has removed KitServer 7 from\n\
+Setup has removed KitServer 8 from\n\
 %s.", fileName);
 	
 			wcscat(outmsg, buf);
@@ -621,7 +621,7 @@ Setup has removed KitServer 7 from\n\
 			ZeroMemory(buf, WBUFLEN);
 			swprintf(buf, L"\
 ======== ERROR! =========\n\
-Setup failed to remove KitServer 7 from\n\
+Setup failed to remove KitServer 8 from\n\
 %s.\n\
 \n\
 (No modifications made.)\n\
@@ -677,7 +677,7 @@ void UpdateInfo(void)
 		{
 			SendMessage(infoControl, WM_SETTEXT, (WPARAM)0, 
 					(LPARAM)L"Unknown EXE-file, this is not a valid executable \
-of Pro Evolution Soccer 2008!\0");
+of Pro Evolution Soccer 2009!\0");
 			continue;
 		}
 		
