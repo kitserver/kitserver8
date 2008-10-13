@@ -38,6 +38,7 @@ KMOD k_afs = {MODID, NAMELONG, NAMESHORT, DEFAULT_DEBUG};
 #define MAX_ITEMS 10609
 #define MAX_FOLDERS 14
 #define NUM_SONGS 60
+#define NUM_BALLS 13
 
 typedef struct _FAST_INFO_CACHE_STRUCT
 {
@@ -329,10 +330,10 @@ HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
     bptr = (BYTE*)data[BALLS_INFO_TABLE];
     protection = 0;
     newProtection = PAGE_READWRITE;
-    if (VirtualProtect(bptr, 12*sizeof(char**), newProtection, &protection)) 
+    if (VirtualProtect(bptr, NUM_BALLS*sizeof(char**), newProtection, &protection)) 
     {
         char** names = (char**)data[BALLS_INFO_TABLE];
-        for (int i=1; i<=12; i++)
+        for (int i=1; i<=NUM_BALLS; i++)
         {
             hash_map<WORD,BALL_STRUCT>::iterator it = _balls->_ballMap.find(i);
             if (it != _balls->_ballMap.end())

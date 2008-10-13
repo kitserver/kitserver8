@@ -1,6 +1,6 @@
 # Ball names map
 # Format: <ball-ordinal>, "<name>" 
 # Note that double quotes are required.
-# (possible ordinals: 1-12)
+# (possible ordinals: 1-13)
 
 7, "Nike Total 90 Omni White Yellow"

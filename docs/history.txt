@@ -1,8 +1,10 @@
 Kitserver 8 HISTORY notes
 =========================
 
-
 2008-10-13
 ----------
+v8.0.1
+- afs2fs: fix to ball names: the are 13 balls (not 12) in the demo
+
 v8.0.0
 - afs2fs: support for PES2009 PC demo.
