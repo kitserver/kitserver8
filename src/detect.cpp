@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include "detect.h"
 #include "imageutil.h"
+#include "shared.h"
+#include "manage.h"
 
 wchar_t* GAME[] = { 
 	L"PES2008 PC DEMO",
@@ -16,6 +18,7 @@ wchar_t* GAME[] = {
 	L"PES2008 PC 1.20",
 	L"PES2008 PC 1.20 ViTALiTY NODVD",
     L"PES2009 PC Demo",
+    L"PES2009 PC",
 };
 char* GAME_GUID[] = {
 	"Pro Evolution Soccer 2008 DEMO",
@@ -28,10 +31,23 @@ char* GAME_GUID[] = {
     "PC  1.20",
     "+V!TAL!TY+",
     "Pro Evolution Soccer 2009 DEMO",
+    "Pro Evolution Soccer 2009",
 };
-DWORD GAME_GUID_OFFSETS[] = { 0x67aca8, 0x5b5c4, 0x994e74, 0x5ec34, 0x3e0, 0x977c50, 0x977c50, 0x978be8, 0x16e, 0xa5db00, };
-bool ISGAME[] = { true, false, true, false, true, true, true, true, true, true };
-BYTE BASE_GAME[] = {0, 1, 2, 3, 2, 5, 5, 7, 7, 8};
+DWORD GAME_GUID_OFFSETS[] = { 0x67aca8, 0x5b5c4, 0x994e74, 0x5ec34, 0x3e0, 0x977c50, 0x977c50, 0x978be8, 0x16e, 0xa5db00, 0xbd0b80, };
+bool ISGAME[] = { true, false, true, false, true, true, true, true, true, true, true };
+BYTE BASE_GAME[] = {
+    gvPES2008demo, 
+    gvPES2008demoSet, 
+    gvPES2008, 
+    gvPES2008Set,
+    gvPES2008, 
+    gvPES2008v110, 
+    gvPES2008v110, 
+    gvPES2008v120, 
+    gvPES2008v120,
+    gvPES2009demo, 
+    gvPES2009,
+};
 
 // Returns the game version id
 int GetRealGameVersion(void)

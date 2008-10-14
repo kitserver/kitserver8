@@ -64,9 +64,19 @@ DWORD codeArray[][CODELEN] = {
 		0, 0, 
 		0, 0, 
 		0, 0, 
-        0x0, 0x0,
-        0x0, 0x0, 
-        0x0, 0x0,
+        0x0, 0x0, //TOFIX
+        0x0, 0x0, //TOFIX
+        0x0, 0x0, //TOFIX
+  },
+  // PES2009
+  {
+		0xe120c5,
+		0, 0, 
+		0, 0, 
+		0, 0, 
+        0x0, 0x0, //TOFIX
+        0x0, 0x0, //TOFIX
+        0x0, 0x0, //TOFIX
   },
 };
 
@@ -118,8 +128,15 @@ DWORD dataArray[][DATALEN] = {
     {
         0, 0,
         0, 0,
-        0x1252ff0, 0x1253010, 0x1252e48, //TOFIX
-        0x1252d70, 0x1253f08, 0x1252d68, //TOFIX
+        0x0, 0x0, 0x0, //TOFIX
+        0x0, 0x0, 0x0, //TOFIX
+    },
+	// PES2009 DEMO
+    {
+        0, 0,
+        0, 0,
+        0x0, 0x0, 0x0, //TOFIX
+        0x0, 0x0, 0x0, //TOFIX
     },
 };
 
@@ -156,6 +173,8 @@ BYTE ltfpPatchArray[][LTFPLEN] = {
     // PES2008 PC 1.20
 	NOLTFPADDR //TODO
     // PES2009 DEMO
+	NOLTFPADDR //TODO
+    // PES2009 
 	NOLTFPADDR //TODO
 };
 

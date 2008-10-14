@@ -676,8 +676,8 @@ void UpdateInfo(void)
 		if (GetRealGameVersion(fileName) == -1)
 		{
 			SendMessage(infoControl, WM_SETTEXT, (WPARAM)0, 
-					(LPARAM)L"Unknown EXE-file, this is not a valid executable \
-of Pro Evolution Soccer 2009!\0");
+					(LPARAM)L"Unknown EXE-file: this does not look like \
+PES2009 or PES2009 DEMO!\n\0");
 			continue;
 		}
 		

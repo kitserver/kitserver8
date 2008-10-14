@@ -10,7 +10,7 @@
 #define THISMOD &k_afsio
 
 #define MODID 123
-#define NAMELONG L"AFSIO Module 8.0.0.0"
+#define NAMELONG L"AFSIO Module 8.0.2.0"
 #define NAMESHORT L"AFSIO"
 #define DEFAULT_DEBUG 0
 
