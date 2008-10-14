@@ -10,7 +10,7 @@
 #define THISMOD &k_afsio
 
 #define MODID 123
-#define NAMELONG L"AFSIO Module 8.0.2.0"
+#define NAMELONG L"AFSIO Module 8.0.3.0"
 #define NAMESHORT L"AFSIO"
 #define DEFAULT_DEBUG 0
 
@@ -144,10 +144,10 @@ HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
 
 	unhookFunction(hk_D3D_CreateDevice, initModule);
 
-    if (getPesInfo()->gameVersion != gvPES2009demo)
-        HookCallPoint(code[C_AT_GET_BINBUFFERSIZE], afsioAtGetBinBufferSizeCallPoint, 6, 1);
-    else
+    if (getPesInfo()->gameVersion == gvPES2009demo || getPesInfo()->gameVersion == gvPES2009)
         HookCallPoint(code[C_AT_GET_BINBUFFERSIZE], afsioAtGetBinBufferSizeCallPoint2, 6, 1);
+    else
+        HookCallPoint(code[C_AT_GET_BINBUFFERSIZE], afsioAtGetBinBufferSizeCallPoint, 6, 1);
     HookCallPoint(code[C_AT_GET_SIZE], afsioAtGetSizeCallPoint, 6, 1);
     HookCallPoint(code[C_AFTER_CREATE_EVENT], afsioAfterCreateEventCallPoint, 6, 3);
     HookCallPoint(code[C_AT_GET_IMG_SIZE], afsioAtGetImgSizeCallPoint, 6, 0);

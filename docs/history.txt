@@ -4,6 +4,9 @@ Kitserver 8 HISTORY notes
 
 2008-10-14
 ----------
+v8.0.3
+- afsio: correction for full game
+
 v8.0.2
 - afs2fs: added support for full game
 
