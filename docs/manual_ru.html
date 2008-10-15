@@ -1,0 +1,243 @@
+﻿<html>
+<head>
+    <title>Kitserver 8 Manual</title>
+    <style>
+        img { display:block;margin:10px 15px 15px 0;border:1px solid #888;}
+        table td img {border:0}
+        .note { background-color:#ffc;color:#800; }
+        div.note { padding:5px; }
+        p.minornote { background-color:#eee;color:#666;padding:5px;font-style:italic }
+        p.devnote { font-weight:bold;font-style:italic;color:#666; }
+        table {padding:10px 0 10px 0;margin-top:5px;border-right:1px;border-bottom:1px}
+        table td {padding:9px;border:1px solid #888}
+        table th {padding:5px;border:1px solid #888;background-color:#ddf;text-align:left}
+        table.stad_names {padding:0;border-right:1px solid #888;border-bottom:1px solid #888;margin-bottom:20px;}
+        table.stad_names th {font-size:0.8em;}
+        table.stad_names td {font-size:0.8em;}
+        table.stad_names th {padding:5px;border-left:1px solid #888;border-top:1px solid #888;border-right:none;border-bottom:none}
+        table.stad_names td {padding:5px;border-left:1px solid #888;border-top:1px solid #888;border-right:none;border-bottom:none}
+        span.kitid {color:#080;font-style:italic}
+        pre {background-color:#ddf;border-top:1px solid #668;border-bottom:1px solid #668}
+        h5 {color:#444; background-color:#eee; display:block;padding:5px;margin-top:10px;margin-bottom:5px;font-family:arial;font-size:1.0em}
+        h3,h4 {color:#804; background-color:#ddc;display:block;padding:5px;font-family:arial;margin-top:1.3em;}
+        h2 {color:#804; display:block;padding:5px 0 5px 0;font-family:tahoma,arial;border-bottom:3px solid #664}
+        div,span,p,li {font-family:arial;}
+        li {margin-bottom:10px;}
+        table {font-family:arial;}
+        table.shpal td {padding:5px 20px 5px 0;border-bottom:1px solid #000;
+            border-top:none;border-left:none;border-right:none}
+        table.shpal td.top {border-top:1px solid #000}
+        span.soft {font-weight:bold;color:#696;}
+        span.ex {font-weight:bold;color:#669;}
+        a {color:#448;}
+        a:visited {color:#448;}
+        a:hover {color:#448;background-color:#ccf}
+        a:active {color:#448;}
+        tr.newf td {background-color:#efd}
+        span.exclam {font-weight:bold;color:#484;}
+        span.emph {color:#844;}
+        div.hist {color:#888;float:right;}
+        span.buttontext {font-weight:bold;color:#000;background-color:#888}
+        a.ac{font-weight:bold;}
+        a.backlink {float:right;margin-top:0.6em}
+    </style>
+</head>
+<body>
+<h2>Kitserver 8: Руководство</h2>
+
+<div class="hist">
+История версий: <a href="history.txt">history.txt</a><br />
+</div>
+<div>
+14 октября 2008 - <b>Kitserver 8.0.3</b><br />
+</div>
+<p class="note">
+Самая свежая версия документации, включая переводы на различные языки, расположена на сайте: <a href="http://kitserver.ath.cx/docs">http://kitserver.ath.cx/docs/</a>
+</p>
+
+<h3>1. Введение</h3>
+<p>
+Kitserver 8 - программа-аддон для игры Pro Evolution Soccer 2009 (и Pro Evolution Soccer 9 Demo). Это загрузчик разных модулей и средство управления ими.
+Далее приводится краткое описание всех модулей, входящих в комплект Kitserver'a. Нажмите на название модуля, чтобы узнать о нём больше.
+</p>
+
+<table>
+    <tr><td><a href="#afs2fs">AFS2FS 8.0.2</a></td>
+        <th><b>afs2fs.dll</b></th>
+        <td>Даёт возможность изменять содержимое AFS (файлов .img), используя файлы и папки: теперь устанавливать и удалять патчи можно без изменения самих файлов .img, что гораздо быстрее и легче.</td>
+    </tr>
+</table>
+
+<h3>2. Установка и удаление</h3>
+
+<p>
+Также, как и в предыдущих версиях Kitserver'a, нужно разархивировать архив в папку где у вас установлен PES. Выглядеть это должно так:
+
+<img src="layout.png"/>
+
+После этого войдите в папку <b>kitserver</b> и запустите <b>setup.exe</b>. Теперь 
+выбирать надо не только PES2009.exe, но и settings.exe: некоторые изменения, производимые Kitserver'ом, 
+производятся именно в этом файле. Просто выберите оба файла (они должны быть выбраны изначально) и 
+нажмите "Install". Если вы больше не хотите использовать Kitserver,
+ещё раз запустите setup.exe и нажмите "Remove". Можно также установить/удалить Kitserver
+только на один .exe: в меню другого надо указать "no action".
+</p>
+
+<img src="setup.png"/>
+
+<h5>2.1. Расширенное использование setup.exe</h5>
+<p>
+<b>setup.exe</b> может также выполнять команды не в своём графическом интерфейсе, а через консоль (командную строку). 
+Это полезно, когда kitserver является частью большого патча с программой-установщиком, и последнее необходимое действие - 
+установка kitserver'a на игру. Чтобы установить/удалить kitserver через консоль, надо создать файл .bat и прописать в нём такую команду:
+</p>
+
+<p class="devnote">
+setup --install --gfile={game-exe} --sfile={settings-exe}<br />
+setup --remove --gfile={game-exe} --sfile={settings-exe}<br />
+</p>
+<p>Пример:</p>
+<p>
+<b>setup --install --gfile=..\PES2008.exe</b>
+</p>
+
+<h3>3. Использование и настройка</h3>
+
+<h5>3.1. Главный файл настроек: config.txt</h5>
+
+<p>
+В папке <b>kitserver</b> есть главный файл настроек программы - <b>config.txt</b>. Здесь модули включаются/отключаются и/или настраиваются.
+</p>
+
+<p>Вот пример файла config.txt:
+</p>
+
+<pre>
+[afsio]
+debug = 1
+
+[afs2fs]
+debug = 1
+
+[kload]
+dll = afsio.dll
+dll = afs2fs.dll
+</pre>
+
+<p>
+У каждого модуля есть свой отдел настроек, который начинается с <b>[<i>имя-модуля</i>]</b> и дальше содержит в себе одну или более опций. В принципе, config.txt изменять вам надо будет только в крайних случаях, когда надо поменять поведение модуля (DLL) или его включить/отключить. 
+</p>
+
+<p>Чтобы выключить какой-либо модуль, просто сделайте нерабочей соответствующую ему строку в разделе <b>[kload]</b>, поставив решётку ('#') в её начале. Также можно просто стереть строку из файла.
+</p>
+
+<a name="afs2fs"><br /></a>
+<p><a class="backlink" href="#">Наверх</a></p>
+<h3>4. Модуль AFS2FS (afs2fs.dll)</h3>
+
+<p>
+Этот модуль Kitserver'a позволяет организовывать BIN-файлы в папки на жёстком диске, вместо того чтобы засовывать их в файлы AFS (*.img), что иногда требует много времени и свободного места.
+</p>
+
+<p>Разные люди за последнее время предлагали похожие решения, но больше всего и настойчивее всего об этом говорил <b>Str@teG</b>. В конце концов я решил просто взять и сделать это. Теперь идея реализована в этом модуле - afs2fs.dll. По своему личному опыту я знаю, что люди иногда не очень охотно воспринимают необходимость ребилда AFS-файлов при установке больших патчей. Не потому, что этот процесс особенно сложный, а потому что он может занять много времени и потребовать много места на жёстком диске. С afs2fs задача сильно облегчается: вы просто кладёте BIN'ы в нужную папку - и всё. И, конечно, никаких ограничений по размеру!
+</p>
+
+<h5>4.1. Как настраивать папки</h5>
+
+<p>
+В папке <b>kitserver</b> должна быть папка <b>img</b> - если её там нет, создайте её. После этого внутри этой папки создайте папки, названные как файлы из папки "img" игры - <b>cv00.img</b>, <b>cv01.img</b>, <b>cs0d.img</b> и т.д. Именно в эти папки вам надо будет класть BIN-файлы.
+</p>
+
+<p class="note">Важно правильно назвать папки: папка должна называться точно так же, как и соответствующий ей AFS-файл. Например, если папка будет называться cv01 вместо cv01.img, то файлы из неё в игру не попадут.
+</p>
+
+<p>Вот как выглядит моя папка <b>img</b>:
+
+<img src="afs2fs.png"/>
+</p>
+
+<h5>4.2. Как называть файлы</h5>
+
+<p class="devnote">Файлы могут называться как угодно, но надо следовать одному правилу: в названии должен быть номер BIN'a, а предшествовать ему должен знак подчёркивания ('_'). Также имя файла не должно быть длиннее 63 символов.
+</p>
+
+<p>
+Примеры правильно названных файлов:<br /><br />
+<span style="color:#080;font-weight:bold">unnamed_317.bin</span><br />
+<span style="color:#080;font-weight:bold">gloves_5820.bin</span><br />
+<span style="color:#080;font-weight:bold">ball_8.bin</span><br />
+<span style="color:#080;font-weight:bold">unknow_8</span> (расширение .bin необязательно)<br />
+<span style="color:#080;font-weight:bold">music_104.adx</span> (расширение может отличаться от .bin: .adx чаще всего используется для музыкальных и звуковых файлов)<br />
+</p>
+
+<p>
+Примеры НЕправильно названных файлов:<br /><br />
+<span style="color:#800;font-weight:bold">unnamed10.bin</span> - отсутствует символ подчёркивания перед номером BIN'a.<br />
+<span style="color:#800;font-weight:bold">face.bin</span> - отсутствует номер BIN'a.<br />
+</p>
+
+<h5>4.3. Месторасположение папки "img"</h5>
+<p>
+По умолчанию, китсервер ищет папку <b>img</b> внутри папки <b>kitserver</b>. Есть возможность разместить папку "img" в любом другом месте на диске, и затем указать китсерверу где она находится. (Например, это удобно в случае установки новых версий китсервера.)
+</p>
+
+<p>Для этого в секции  [afs2fs] конфигурационного файла config.txt, прописываем опцию "img.dir" следующим образом:</p>
+
+<pre>
+[afs2fs]
+img.dir = "c:\mypesfiles\"
+</pre>
+
+<p class="note">2 момента, на которые важно обратить внимание:</p>
+<p>
+<ul>
+    <li>Вы должны указать путь в папке, которая содержит папку "img", а не к самой папке "img". Например: если полный путь - <b>c:\mypesfiles\img</b>, то опция в config.txt должна выглядеть так: <span style="color:#080"><b>img.dir = "c:\mypesfiles\"</b></span></li>
+    <li>Значение в кавычках должно обязательно заканчиваться символом "\" (как в примере выше)</li>
+</ul>
+</p>
+
+
+<h5>4.4. Имена песен и мячей</h5>
+<p>
+При замене песен с помощью AFS2FS можно поменять название песни и её исполнителя, используя "направляющий" файл <b>songs.txt</b>, который должен располагаться в папке <b>kitserver\names</b>.<br />
+<br />
+Вот пример такого файла:
+</p>
+
+<pre>
+# Направляющий файл для названий песен
+# Формат: &lt;номер-bin'a&gt;, "&lt;название&gt;", "&lt;исполнитель&gt;"
+# Двойные кавычки обязательны.
+# (номера бинов для песен: 91-150)
+
+104, "Vne zony dostupa", "Gorod 007"
+</pre>
+
+<p>
+То же самое можно сделать и с мячами, только файл должен называться <b>balls.txt</b>:
+
+<pre>
+# Направляющий файл для названий мячей
+# Формат: &lt;номер-мяча&gt;, "&lt;название-мяча&gt;"
+# Двойные кавычки обязательны.
+# (Мячи пронумерованы от 1 до 13)
+
+7, "Nike Total 90 Omni White Yellow"
+</pre>
+
+<div style="height:20px"></div>
+
+<h2>Над программой работали</h2>
+<p>
+Программирование: <b>juce</b> и <b>Robbie</b><br />
+Бета-тестинг: пользователи форумов Evo-Web и PesWe.com.<br />
+Идеи модуля <i>afs2fs</i>: <b>Str@teG</b><br />
+<br/>
+Перевод руководства на русский язык: <b>ЧингизКан</b></p>
+
+<p>
+Отдельная благодарность администраторам сайта <a href="http://www.peswe.com">PesWe.com</a> и юзерам <a href="http://www.peswe.com/fm">форума PesWe.com</a>.
+</p>
+
+</body>
+</html>
