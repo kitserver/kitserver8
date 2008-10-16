@@ -6,7 +6,8 @@
 #include <windows.h>
 
 #define WIN_WIDTH 540 
-#define WIN_HEIGHT 365
+#define WIN_HEIGHT 235
+//#define WIN_HEIGHT 365
 
 extern HWND g_lodListControl[5];          // lod lists
 extern HWND g_crowdCheckBox;              // crowd
@@ -28,6 +29,7 @@ extern HWND g_arCheckBox;
 extern HWND g_arRadio1;
 extern HWND g_arRadio2;
 extern HWND g_arEditControl;
+extern HWND g_angleControl;
 extern HWND g_lodCheckBox;
 extern HWND g_controllerCheckBox;
 extern HWND g_defLodControl;

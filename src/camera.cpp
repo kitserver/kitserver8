@@ -110,25 +110,54 @@ HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
     // patch code to load an arbitrary camera angle
     if (_camera_config.angle != 0)
     {
-        DWORD points[] = {
-            code[C_READ_CAMERA_ANGLE1], code[C_READ_CAMERA_ANGLE2],
-        };
-
         int patchCount = 0;
-        for (int i=0; i<2; i++)
+
+        if (getPesInfo()->gameVersion < gvPES2009demo)
         {
-            BYTE* bptr = (BYTE*)points[i];
+            DWORD points[] = {
+                code[C_READ_CAMERA_ANGLE1], code[C_READ_CAMERA_ANGLE2],
+            };
+
+            for (int i=0; i<2; i++)
+            {
+                BYTE* bptr = (BYTE*)points[i];
+                DWORD protection = 0;
+                DWORD newProtection = PAGE_EXECUTE_READWRITE;
+                if (bptr && VirtualProtect(bptr, 16, newProtection, &protection)) 
+                {
+                    bptr[0] = 0xb8;  // mov eax, _camera_config.angle
+                    DWORD* ptr = (DWORD*)(bptr + 1);
+                    ptr[0] = _camera_config.angle;
+                    // padding with NOP
+                    bptr[5] = 0x90;
+                    bptr[6] = 0x90;
+
+                    patchCount++;
+                }
+            }
+        }
+        else
+        {
+            BYTE* bptr = (BYTE*)code[C_READ_CAMERA_ANGLE1];
             DWORD protection = 0;
             DWORD newProtection = PAGE_EXECUTE_READWRITE;
             if (bptr && VirtualProtect(bptr, 16, newProtection, &protection)) 
             {
-                bptr[0] = 0xb8;  // mov eax, _camera_config.angle
+                DWORD* ptr = (DWORD*)(bptr + 6); // mov [esi+0xb8],angle
+                ptr[0] = _camera_config.angle;
+                patchCount++;
+            }
+
+            bptr = (BYTE*)code[C_READ_CAMERA_ANGLE2];
+            protection = 0;
+            if (bptr && VirtualProtect(bptr, 16, newProtection, &protection)) 
+            {
+                bptr[0] = 0xb8;  // mov eax,angle
                 DWORD* ptr = (DWORD*)(bptr + 1);
                 ptr[0] = _camera_config.angle;
                 // padding with NOP
                 bptr[5] = 0x90;
                 bptr[6] = 0x90;
-
                 patchCount++;
             }
         }

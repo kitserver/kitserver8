@@ -81,17 +81,20 @@ void initLodMixer()
             _lmconfig.screen.width, _lmconfig.screen.height);
 
     BYTE* bptr = (BYTE*)code[C_SETTINGS_CHECK];
-	DWORD protection;
+    DWORD protection;
     DWORD newProtection = PAGE_EXECUTE_READWRITE;
-    if (VirtualProtect(bptr, 6, newProtection, &protection)) {
-        /* CALL */
-        bptr[0] = 0xe8;
-        DWORD* ptr = (DWORD*)(code[C_SETTINGS_CHECK] + 1);
-        ptr[0] = (DWORD)modifySettings - (DWORD)(code[C_SETTINGS_CHECK] + 5);
-        /* NOP */ 
-        bptr[5] = 0x90;
-        LOG(L"Settings check disabled. Settings overwrite enabled.");
-    } 
+    if (bptr)
+    {
+        if (VirtualProtect(bptr, 6, newProtection, &protection)) {
+            /* CALL */
+            bptr[0] = 0xe8;
+            DWORD* ptr = (DWORD*)(code[C_SETTINGS_CHECK] + 1);
+            ptr[0] = (DWORD)modifySettings - (DWORD)(code[C_SETTINGS_CHECK] + 5);
+            /* NOP */ 
+            bptr[5] = 0x90;
+            LOG(L"Settings check disabled. Settings overwrite enabled.");
+        } 
+    }
 
     if (_lmconfig.controllerCheckEnabled)
     {

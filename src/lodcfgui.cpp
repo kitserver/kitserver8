@@ -33,6 +33,7 @@ HWND g_resHeightControl;
 HWND g_arRadio1;
 HWND g_arRadio2;
 HWND g_arEditControl;
+HWND g_angleControl;
 HWND g_lodCheckBox;
 HWND g_defLodControl;
 HWND g_lodLabel1;
@@ -218,7 +219,7 @@ bool BuildControls(HWND parent)
     x = spacer*2;
     y += spacer;
 	g_resCheckBox = CreateWindowEx(
-			xstyle, L"button", L"Enforce custom resolution", style | BS_AUTOCHECKBOX,
+			xstyle, L"button", L"Force custom resolution", style | BS_AUTOCHECKBOX,
 			x, y, 250, butH,
 			parent, NULL, NULL, NULL);
     SendMessage(g_resCheckBox, WM_SETFONT, (WPARAM)hObj, true);
@@ -253,12 +254,59 @@ bool BuildControls(HWND parent)
     SendMessage(g_resHeightControl, WM_SETFONT, (WPARAM)hObj, true);
     EnableWindow(g_resHeightControl, FALSE);
 
+	x = spacer*2;
+	y += boxH + spacer*3;
+
+    // CAMERA ANGLE
+    x = spacer;
+	HWND staticCameraBorderTopControl = CreateWindowEx(
+			xstyle, L"Static", L"", WS_CHILD | WS_VISIBLE | SS_ETCHEDFRAME,
+			x, y, borW, boxH+spacer*2,
+			parent, NULL, NULL, NULL);
+
+    y += spacer;
+    x = spacer*2;
+    statW = 250;
+	HWND angleLabel = CreateWindowEx(
+			xstyle, L"Static", L"Camera angle (values > 9 are OK):", style,
+			x, y+4, statW, statH, 
+			parent, NULL, NULL, NULL);
+
+	x += statW + spacer*2;
+    boxW = 70;
+	//butW = borW - statW - spacer*5 - boxW;
+
+    g_angleControl = CreateWindowEx(
+            xstyle, L"ComboBox", L"", 
+			CBS_DROPDOWN | WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP,
+            x, y, boxW, boxH * 10,
+            parent, NULL, NULL, NULL);
+
+    x += boxW + spacer*2;
+	HWND cameraText = CreateWindowEx(
+			xstyle, L"Static", L"(default is 0)", style,
+			x, y+4, statW, statH, 
+			parent, NULL, NULL, NULL);
+
+    SendMessage(g_angleControl, CB_ADDSTRING, (WPARAM)0, (LPARAM)"0");
+    SendMessage(g_angleControl, CB_ADDSTRING, (WPARAM)0, (LPARAM)"1");
+    SendMessage(g_angleControl, CB_ADDSTRING, (WPARAM)0, (LPARAM)"2");
+    SendMessage(g_angleControl, CB_ADDSTRING, (WPARAM)0, (LPARAM)"3");
+    SendMessage(g_angleControl, CB_ADDSTRING, (WPARAM)0, (LPARAM)"4");
+    SendMessage(g_angleControl, CB_ADDSTRING, (WPARAM)0, (LPARAM)"5");
+    SendMessage(g_angleControl, CB_ADDSTRING, (WPARAM)0, (LPARAM)"6");
+    SendMessage(g_angleControl, CB_ADDSTRING, (WPARAM)0, (LPARAM)"7");
+    SendMessage(g_angleControl, CB_ADDSTRING, (WPARAM)0, (LPARAM)"8");
+    SendMessage(g_angleControl, CB_ADDSTRING, (WPARAM)0, (LPARAM)"9");
+
+    x = spacer * 2;
+    y += butH + spacer*3;
+
+    /*
     // LOD
     /////////////////////////////////////////////////////////////
     
 	style = WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX;
-	x = spacer*2;
-	y += boxH + spacer*4;
 
     statW = 100;
     editW = 50;
@@ -306,10 +354,10 @@ bool BuildControls(HWND parent)
 
     x += statW + spacer;
     g_lodTrackBarControl[1] = CreateTrackbar(parent,x,y,tw,th,LDSW_MIN,LDSW_MAX,
-            getTickValue(0.074),getTickValue(0.074));
+            getTickValue(0.070),getTickValue(0.070));
     x += tw + spacer;
 	g_lodEditControl[1] = CreateWindowEx(
-			xstyle, L"static", L"0.074", WS_CHILD | WS_VISIBLE,
+			xstyle, L"static", L"0.070", WS_CHILD | WS_VISIBLE,
 			x, y, editW, editH,
 			parent, NULL, NULL, NULL);
     y += th + spacer;
@@ -339,6 +387,7 @@ bool BuildControls(HWND parent)
 
 	y += boxH + spacer*2;
     x = spacer*2;
+    */
 
 	// BOTTOM sections: buttons
 	
@@ -377,6 +426,9 @@ bool BuildControls(HWND parent)
 	SendMessage(g_defButtonControl, WM_SETFONT, (WPARAM)hObj, true);
 	SendMessage(g_crowdCheckBox, WM_SETFONT, (WPARAM)hObj, true);
 	SendMessage(g_arCheckBox, WM_SETFONT, (WPARAM)hObj, true);
+	SendMessage(angleLabel, WM_SETFONT, (WPARAM)hObj, true);
+	SendMessage(g_angleControl, WM_SETFONT, (WPARAM)hObj, true);
+	SendMessage(cameraText, WM_SETFONT, (WPARAM)hObj, true);
 
 	SendMessage(g_lodCheckBox, WM_SETFONT, (WPARAM)hObj, true);
 	SendMessage(g_controllerCheckBox, WM_SETFONT, (WPARAM)hObj, true);

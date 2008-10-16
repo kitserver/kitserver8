@@ -2,11 +2,11 @@
 #define _LODCFG_H_
 
 #ifdef MYDLL_RELEASE_BUILD
-#define LODCFG_WINDOW_TITLE "LOD Mixer Module for Kitserver 7"
+#define LODCFG_WINDOW_TITLE "Kitserver 8 Configuration"
 #else
-#define LODCFG_WINDOW_TITLE "LOD Mixer Module for Kitserver 7 (debug build)"
+#define LODCFG_WINDOW_TITLE "Kitserver 8 Configuration (debug build)"
 #endif
-#define CREDITS "Program info: v7.1.0 (1/2008) by Juce."
+#define CREDITS "Program info: v8.0.4 (10/2008) by Juce."
 
 typedef struct _LCM {
     WORD homeTeamId;

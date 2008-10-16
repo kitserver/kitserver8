@@ -49,7 +49,7 @@
 Version history: <a href="history.txt">history.txt</a><br />
 </div>
 <div>
-October 14, 2008 - <b>Kitserver 8.0.3</b><br />
+October 15, 2008 - <b>Kitserver 8.0.4</b><br />
 </div>
 <p class="note">
 The most up-to-date version of this documentation, and the translations to many languages, are located here: <a href="http://kitserver.ath.cx/docs">http://kitserver.ath.cx/docs/</a>
@@ -66,6 +66,17 @@ Below is a quick summary of the available features. Follow the link in the left 
         <th><b>afs2fs.dll</b></th>
         <td>Manage AFS (.img) game content using files and folders: much easier and quicker to install/remove patches, without the need modify *.img files</td>
     </tr>
+    <tr><td><a href="#lodmixer">LOD Mixer 8.0.4</a></td>
+        <th><b>lodmixer.dll</b></th>
+        <td>Various tweaks to graphics and game options: 
+Any window resolution supported, hidden fullscreen resolutions unlocked;
+Manual/Automatic aspect ratio correction.
+        </td>
+    </tr>
+    <tr><td><a href="#camera">Camera module 8.0.4</a></td>
+        <th><b>camera.dll</b></th>
+        <td>Increase the camera viewing angle for Normal and Wide cameras, and enjoy new playing experience.</td>
+    </tr>
 </table>
 
 <h3>2. Installation / Removal</h3>
@@ -81,7 +92,7 @@ drop-down list, and click "Install". If you choose that you don't want to use
 Kitserver any longer, run setup.exe again and click "Remove".
 </p>
 
-<img src="setup.png"/>
+<img src="setup.png" style="border:0"/>
 
 <h5>2.1. Advanced usage of setup.exe</h5>
 <p>
@@ -125,6 +136,16 @@ Each module can have its own configuration section, which starts with <b>[<i>mod
 </p>
 
 <p>To disable a particular module - just comment out the corresponding line in the <b>[kload]</b> section by putting a '#' symbol at the beginning. (Or you can delete that line altogether.)
+</p>
+
+
+<h5>3.2. Configuration tool - config.exe</h5>
+
+<p>Formerly known as lodcfg.exe (it used to be the GUI tool for LOD mixer only, but now it covers other configuration options as well), this simple GUI program allows to modify some configuration settings in config.txt. It's a helper tool and all that it does, you can also do manually, by editing config.txt in your favourite text editor. <span class="note">In fact, some things you can <i>only</i> do manually - like adding and removing modules (DLLs)</span>. But for simple things - like changing resolution, or choosing camera angle - it's faster and easier to just launch <b>config.exe</b>, quickly adjust things, then click [Save] button, and you're done.
+</p>
+
+<p>
+<img src="config.png" style="border:0"/>
 </p>
 
 <a name="afs2fs"><br /></a>
@@ -220,6 +241,68 @@ Similarly with balls, it is often desirable to specify names which are longer th
 
 7, "Nike Total 90 Omni White Yellow"
 </pre>
+
+<a name="lodmixer"><br /></a>
+<p><a class="backlink" href="#">Top</a></p>
+<h3>5. LOD Mixer (lodmixer.dll)</h3>
+
+<p>
+LOD-Mixer is the module that allows to fine-tune some aspects of PES2008 graphics engine.<br />
+Currently the following features are implemented: screen resolution and aspect ratio correction. All of these can be configured manually in kitserver's main 
+configuration file (kitserver/config.txt), but you can also use Kitserver's configuration tool (<b>config.exe</b>). 
+</p>
+
+<h5>5.1. Aspect Ratio.</h5>
+<p>
+Many LCD monitors are neither 4:3 nor 16:9. Often, a 16:10 ratio is
+used, or even 16:9.6. This results in the picture being distored: players either
+too fat or too skinny, and ball is not round. In this year version, Konami 
+decided to address that by introducing the black bars to compensate for the
+case when aspect-ratio is different (<b>LB</b> checkbox). However, if you 
+don't like the black bars, then run settings.exe, turn off the LB checkbox, and then use Kitserver's aspect-ratio correction feature instead:
+</p>
+
+<p>
+With LOD Mixer, you can set the aspect ratio to whatever you want. Either let
+LOD Mixer calculate it automatically - at run-time, using the current screen
+width and height in pixels - or set the value manually. Automatic way would work quite
+accurately, assuming the pixel is square. Sometimes, however, you would want to
+set it manually. For example, i play on widescreen monitor, but using a 800x600 
+resolution, because my video card is not powerful enough. The automatic 
+calculation would give 4:3, but since the view is stretched to fill the entire 
+screen, we need to account for that. Setting aspect ratio to 1.6 (which is a 
+natural AR for my laptop) does the trick.
+</p>
+
+<h5>5.2. Screen Resolution.</h5>
+<p>
+You can set any screen resolution you want, if you play in a Windowed mode. Even
+crazy screens like 1567x532 will work, but you're likely to suffer from 
+performance problems on such cases.
+Hidden fullscreen resolutions are fully unlocked now as well. However, only those
+that your video card really supports in full-screen mode, will work. If you 
+accidently choose an unsupported fullscreen resolution, then PES should still 
+be able to start in a window.
+</p>
+
+<a name="camera"><br /></a>
+<p><a class="backlink" href="#">Top</a></p>
+<h3>6. Camera module (camera.dll)</h3>
+
+<p>
+For reasons known only to Konami product managers, for the second year running, they took away the interface feature that allowed to adjust camera angle (it was in PES3-PES6, but it disappeared starting with PES2008). The underlying logic is still present in the game executable though, and this module allows you to take advantage of it. You can adjust the camera angle: standard values are 0 - 9, but you can actually set a bigger value, which will result in camera turning even more. For example, i like to play with angle value set to 30.</p>
+
+<p>Choose any value from 0 to 2^32-1. Angles like 50, 100, 200 give quite a different perspective of play. More fun :)
+</p>
+
+<p>Use Kitserver configuration tool (<b>config.exe</b>) or, you can also edit
+your config.txt file manually, like this:
+
+<pre>
+[camera]
+angle = 100
+</pre>
+</p>
 
 <div style="height:20px"></div>
 

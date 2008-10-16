@@ -37,6 +37,15 @@ only those that are REALLY supported by your videocard will be\n\
 in full-screen. Unsupported resolutions will switch back to\n\
 windowed mode.\n\
 \n\
+You can select a value from the drop-down list (0-9),\n\
+or you can enter any number you want between 0 and 2^32-1.\n\
+The bigger the value, the more camera turns when following the ball,\n\
+as opposed to rolling alongside the pitch. This helps to achieve\n\
+nice 'TV-broadcasting'-type views.\n\
+\n\
+Dont't forget to press the [Save] button!";
+
+/**
 There are 3 levels of LOD (level-of-detail). The sliders indicate \n\
 when the switching between the levels occurs. Moving sliders to \n\
 the left makes the game engine to switch earlier - as a result you \n\
@@ -51,8 +60,7 @@ both teams, unless both of their selected teams are playing against \n\
 each other in the match. Now you can remove that limitation. So, even\n\
 for P1 vs. COM game, or P2 vs. COM - you can freely select which team\n\
 you control with each controller.\n\
-\n\
-Dont't forget to press the [Save] button!";
+**/
 
 LMCONFIG _lmconfig = {
     {DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_ASPECT_RATIO}, 
@@ -60,6 +68,7 @@ LMCONFIG _lmconfig = {
     DEFAULT_ASPECT_RATIO_CORRECTION_ENABLED,
     DEFAULT_CONTROLLER_CHECK_ENABLED,
 };
+DWORD _cameraAngle = 0;
 
 // function prototypes
 void lodmixerConfig(char* pName, const void* pValue, DWORD a);
@@ -331,6 +340,12 @@ void UpdateControls(LMCONFIG& cfg)
         SendMessage(g_resHeightControl, WM_SETTEXT, 0, (LPARAM)buf);
     }
 
+    // Camera angle
+    {
+        char buf[40] = {0}; sprintf(buf,"%d",_cameraAngle);
+        SendMessage(g_angleControl, WM_SETTEXT, 0, (LPARAM)buf);
+    }
+
     // LOD
     SendMessage(g_lodCheckBox, BM_SETCHECK, BST_UNCHECKED, 0);
     EnableWindow(g_lodTrackBarControl[0], false);
@@ -425,6 +440,18 @@ void UpdateConfig(LMCONFIG& cfg)
         }
     }
 
+    // Camera angle
+    _removeConfig("camera", "angle");
+    {
+        ZeroMemory(abuf, sizeof(abuf));
+        SendMessage(g_angleControl, WM_GETTEXT, sizeof(abuf), (LPARAM)abuf);
+        if (sscanf(abuf,"%d",&ival)==1 && ival>0)
+        {
+            swprintf(buf,L"%d",ival);
+            _setConfig("camera", "angle", wstring(buf));
+        }
+    }
+
     // LOD
     bool lodChecked = SendMessage(g_lodCheckBox, BM_GETCHECK, 0, 0);
     if (lodChecked)
@@ -481,6 +508,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
     _getConfig("lodmixer", "lod.switch2", DT_FLOAT, 5, lodmixerConfig);
     _getConfig("lodmixer", "aspect-ratio.correction.enabled", DT_DWORD, 6, lodmixerConfig);
     _getConfig("lodmixer", "controller.check.enabled", DT_DWORD, 7, lodmixerConfig);
+    _getConfig("camera", "angle", DT_DWORD, 8, lodmixerConfig);
 
     UpdateControls(_lmconfig);
 
@@ -528,6 +556,9 @@ void lodmixerConfig(char* pName, const void* pValue, DWORD a)
 			break;
 		case 7: // Controller check
 			_lmconfig.controllerCheckEnabled = *(DWORD*)pValue != 0;
+			break;
+		case 8: // Camera angle
+			_cameraAngle = *(DWORD*)pValue;
 			break;
 	}
 }

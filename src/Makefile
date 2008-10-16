@@ -33,7 +33,7 @@ all: dlls apps
 	copy $(LIBPNGDLL) output
 	copy $(ZLIBDLL) output
 	copy setup.exe output
-	copy lodcfg.exe output
+	copy config.exe output
 	copy lang_*.txt output
 	
 all_dlls: dlls
@@ -48,14 +48,14 @@ all_apps: apps
 	if exist output (rd /S /Q output)
 	mkdir output
 	copy setup.exe output
-	copy lodcfg.exe output
+	copy config.exe output
 	copy lang_*.txt output
 
 pngdib:
 	(cd soft\pngdib && nmake EXTRA_CFLAGS=$(EXTRA_CFLAGS))
 
 dlls: kload.dll kserv.dll lodmixer.dll kset.dll afsio.dll afs2fs.dll sched.dll fserv.dll rwdata.dll camera.dll time.dll stadium.dll bootserv.dll bserv.dll
-apps: setup.exe lodcfg.exe zlibtool.exe
+apps: setup.exe config.exe zlibtool.exe
 
 setup: setup.exe
 kset: kset.dll
@@ -158,10 +158,12 @@ setup.exe: setup.obj detect.obj setupgui.obj imageutil.obj lang.obj configs.obj 
 setup.res: 
 	$(RC) -r -fo setup.res setup.rc
 	
-lodcfg.obj: lodcfg.cpp lodcfg.h lodcfgui.h
+lodcfg.obj: lodcfg.cpp lodcfg.h lodcfgui.h lodmixer.h
 lodcfgui.obj: lodcfgui.cpp lodcfgui.h
-lodcfg.exe: lodcfg.obj detect.obj lodcfgui.obj imageutil.obj configs.obj
-	$(LINK) $(LFLAGS) /out:lodcfg.exe lodcfg.obj detect.obj lodcfgui.obj imageutil.obj configs.obj $(LIBS)
+config.exe: lodcfg.obj detect.obj lodcfgui.obj imageutil.obj configs.obj config.res
+	$(LINK) $(LFLAGS) /out:config.exe lodcfg.obj detect.obj lodcfgui.obj imageutil.obj configs.obj config.res $(LIBS)
+config.res: 
+	$(RC) -r -fo config.res config.rc
 
 zlibtool.obj: zlibtool.cpp
 zlibtool.exe: zlibtool.obj 
