@@ -7,6 +7,6 @@ debug = 1
 [kload]
 dll = afsio.dll
 dll = afs2fs.dll
-
-
+dll = camera.dll
+dll = lodmixer.dll
 
