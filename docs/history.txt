@@ -4,6 +4,9 @@ Kitserver 8 HISTORY notes
 
 2008-10-20
 ----------
+v8.0.6
+- lodmixer: added "disable controller check" feature
+
 v8.0.5
 - afs2fs: fixed bug where rs0e_X.img AFS-file wasn't handled
 

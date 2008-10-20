@@ -30,6 +30,8 @@ void getResolution(DWORD& width, DWORD& height);
 void setResolution(DWORD width, DWORD height);
 void setAspectRatio(float aspectRatio, bool manual);
 void setSwitchesForLOD(float switch1, float switch2);
+void lodAtModeCheckCallPoint();
+KEXPORT DWORD lodAtModeCheck(DWORD mode);
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 {
@@ -76,7 +78,7 @@ void initLodMixer()
     getConfig("lodmixer", "lod.switch1", DT_FLOAT, 4, lodmixerConfig);
     getConfig("lodmixer", "lod.switch2", DT_FLOAT, 5, lodmixerConfig);
     getConfig("lodmixer", "aspect-ratio.correction.enabled", DT_DWORD, 6, lodmixerConfig);
-    getConfig("lodmixer", "controller.check.enabled", DT_DWORD, 7, lodmixerConfig);
+    getConfig("lodmixer", "controller.check.disabled", DT_DWORD, 7, lodmixerConfig);
     LOG2N(L"Screen resolution to force: %dx%d", 
             _lmconfig.screen.width, _lmconfig.screen.height);
 
@@ -99,7 +101,7 @@ void initLodMixer()
     if (_lmconfig.controllerCheckEnabled)
     {
         bptr = (BYTE*)code[C_MODE_CHECK];
-        if (bptr)
+        if (bptr && getPesInfo()->gameVersion < gvPES2009demo)
         {
             // need to insert a bit of code, to handle the special
             // case of Exhibition Mode. 61 bytes before C_MODE_CHECK is a good place.
@@ -120,6 +122,12 @@ void initLodMixer()
                     LOG(L"Mode check disabled for controller selection.");
                 }
             } 
+        }
+        else if (bptr)
+        {
+            // PES2009: use callpoint
+            HookCallPoint(code[C_MODE_CHECK], lodAtModeCheckCallPoint, 6, 1);
+            LOG(L"Mode check disabled for controller selection.");
         }
     }
 
@@ -230,3 +238,35 @@ void setSwitchesForLOD(float switch1, float switch2)
     }
 }
 
+void lodAtModeCheckCallPoint()
+{
+    __asm {
+        pushfd 
+        push ebp
+        push eax
+        push ebx
+        push edx
+        push esi
+        push edi
+        mov [edi+0x13c], eax  // execute replaced code
+        push ecx
+        call lodAtModeCheck
+        mov ecx,eax
+        add esp,4     // pop parameters
+        pop edi
+        pop esi
+        pop edx
+        pop ebx
+        pop eax
+        pop ebp
+        popfd
+        retn
+    }
+}
+
+KEXPORT DWORD lodAtModeCheck(DWORD mode)
+{
+    if (mode != 0)
+        return 1;
+    return 0;
+}

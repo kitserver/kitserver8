@@ -369,6 +369,7 @@ bool BuildControls(HWND parent)
 	style = WS_CHILD | WS_VISIBLE;
 
     y += spacer*4;
+    */
 
     // controller check
     x = spacer;
@@ -387,7 +388,6 @@ bool BuildControls(HWND parent)
 
 	y += boxH + spacer*2;
     x = spacer*2;
-    */
 
 	// BOTTOM sections: buttons
 	

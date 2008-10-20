@@ -6,7 +6,7 @@
 #include <windows.h>
 
 #define WIN_WIDTH 540 
-#define WIN_HEIGHT 235
+#define WIN_HEIGHT 270
 //#define WIN_HEIGHT 365
 
 extern HWND g_lodListControl[5];          // lod lists

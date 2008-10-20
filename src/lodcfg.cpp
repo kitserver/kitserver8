@@ -43,6 +43,12 @@ The bigger the value, the more camera turns when following the ball,\n\
 as opposed to rolling alongside the pitch. This helps to achieve\n\
 nice 'TV-broadcasting'-type views.\n\
 \n\
+About controller check: PES 2009 doesn't allow human players to control\n\
+both teams, unless both of their selected teams are playing against \n\
+each other in the match. Now you can remove that limitation. So, even\n\
+for P1 vs. COM game, or P2 vs. COM - you can freely select which team\n\
+you control with each controller.\n\
+\n\
 Dont't forget to press the [Save] button!";
 
 /**
@@ -55,11 +61,6 @@ pretty powerful machine and a good videocard, then try moving the \n\
 sliders to the right: the game engine will switch the LODs later, \n\
 and therefore give you more detail.\n\
 \n\
-About controller check: PES 2008 doesn't allow human players to control\n\
-both teams, unless both of their selected teams are playing against \n\
-each other in the match. Now you can remove that limitation. So, even\n\
-for P1 vs. COM game, or P2 vs. COM - you can freely select which team\n\
-you control with each controller.\n\
 **/
 
 LMCONFIG _lmconfig = {
@@ -400,7 +401,7 @@ void UpdateConfig(LMCONFIG& cfg)
 
     // Aspect ratio
     bool arChecked = SendMessage(g_arCheckBox, BM_GETCHECK, 0, 0);
-    _setConfig("lodmixer", "aspect-ratio.correction.enabled", 
+    _setConfig("lodmixer", "aspect-ratio.correction.disabled", 
             (arChecked)?wstring(L"1"):wstring(L"0"));
     _removeConfig("lodmixer", "screen.aspect-ratio");
     if (arChecked)
@@ -474,11 +475,11 @@ void UpdateConfig(LMCONFIG& cfg)
     bool controllerChecked = SendMessage(g_controllerCheckBox, BM_GETCHECK, 0, 0);
     if (controllerChecked)
     {
-        _setConfig("lodmixer", "controller.check.enabled", wstring(L"1"));
+        _setConfig("lodmixer", "controller.check.disabled", wstring(L"1"));
     }
     else
     {
-        _removeConfig("lodmixer", "controller.check.enabled");
+        _removeConfig("lodmixer", "controller.check.disabled");
     }
 }
 
@@ -507,7 +508,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
     _getConfig("lodmixer", "lod.switch1", DT_FLOAT, 4, lodmixerConfig);
     _getConfig("lodmixer", "lod.switch2", DT_FLOAT, 5, lodmixerConfig);
     _getConfig("lodmixer", "aspect-ratio.correction.enabled", DT_DWORD, 6, lodmixerConfig);
-    _getConfig("lodmixer", "controller.check.enabled", DT_DWORD, 7, lodmixerConfig);
+    _getConfig("lodmixer", "controller.check.disabled", DT_DWORD, 7, lodmixerConfig);
     _getConfig("camera", "angle", DT_DWORD, 8, lodmixerConfig);
 
     UpdateControls(_lmconfig);

@@ -40,7 +40,7 @@ DWORD codeArray[][CODELEN] = {
     },
     // PES2009 
     {
-        0xe192c8, 0,
+        0xe192c8, 0xdbffce,
     },
 };
 
