@@ -43,11 +43,12 @@ The bigger the value, the more camera turns when following the ball,\n\
 as opposed to rolling alongside the pitch. This helps to achieve\n\
 nice 'TV-broadcasting'-type views.\n\
 \n\
-About controller check: PES 2009 doesn't allow human players to control\n\
-both teams, unless both of their selected teams are playing against \n\
-each other in the match. Now you can remove that limitation. So, even\n\
-for P1 vs. COM game, or P2 vs. COM - you can freely select which team\n\
-you control with each controller.\n\
+About controller check: in cup modes (League/Cup, ML, UEFA CL)\n\
+PES 2009 doesn't allow human players to control both teams,\n\
+unless both of their selected teams are playing against each other\n\
+in the match. Now you can remove that limitation. So, even\n\
+for P1 vs. COM game, or P2 vs. COM - you can freely select\n\
+which team you control with each controller.\n\
 \n\
 Dont't forget to press the [Save] button!";
 
@@ -401,7 +402,7 @@ void UpdateConfig(LMCONFIG& cfg)
 
     // Aspect ratio
     bool arChecked = SendMessage(g_arCheckBox, BM_GETCHECK, 0, 0);
-    _setConfig("lodmixer", "aspect-ratio.correction.disabled", 
+    _setConfig("lodmixer", "aspect-ratio.correction.enabled", 
             (arChecked)?wstring(L"1"):wstring(L"0"));
     _removeConfig("lodmixer", "screen.aspect-ratio");
     if (arChecked)
