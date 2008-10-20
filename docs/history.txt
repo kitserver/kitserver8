@@ -2,6 +2,12 @@ Kitserver 8 HISTORY notes
 =========================
 
 
+2008-10-20
+----------
+v8.0.5
+- afs2fs: fixed bug where rs0e_X.img AFS-file wasn't handled
+
+
 2008-10-15
 ----------
 v8.0.4

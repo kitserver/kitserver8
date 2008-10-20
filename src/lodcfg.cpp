@@ -154,7 +154,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					g_buttonClick = true;
 
                     // display small help window
-                    MessageBox(hWnd, _help, "LOD Mixer Help", 0);
+                    MessageBox(hWnd, _help, "Configuration Tool Help", 0);
 				}
 			}
 			else if (HIWORD(wParam) == CBN_EDITUPDATE)
@@ -281,9 +281,9 @@ void SaveConfig()
 		ZeroMemory(buf, BUFLEN);
 		sprintf(buf, "\
 ======= SUCCESS! ========\n\
-LOD Mixer configuration saved.\n\
+Kitserver configuration saved.\n\
 \n");
-		MessageBox(hWnd, buf, "LOD Mixer Message", 0);
+		MessageBox(hWnd, buf, "Configuration Tool Message", 0);
 
     } else {
 		// show message box with error msg
@@ -291,11 +291,11 @@ LOD Mixer configuration saved.\n\
 		ZeroMemory(buf, BUFLEN);
 		sprintf(buf, "\
 ========== ERROR! ===========\n\
-Problem saving LOD Mixer configuration info this file:\n\
+Problem saving Kitserver configuration info this file:\n\
 %s.\n\
 \n", CFG_FILE);
 
-		MessageBox(hWnd, buf, "LOD Mixer Message", 0);
+		MessageBox(hWnd, buf, "Configuration Tool Message", 0);
 		return;
 	}
 }
