@@ -31,13 +31,14 @@ void setResolution(DWORD width, DWORD height);
 void setAspectRatio(float aspectRatio, bool manual);
 void setSwitchesForLOD(float switch1, float switch2);
 void lodAtModeCheckCallPoint();
+void lodAtSettingsReadPoint();
+void lodAtSettingsResetPoint();
 KEXPORT DWORD lodAtModeCheck(DWORD mode);
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 {
 	if (dwReason == DLL_PROCESS_ATTACH)
 	{
-		LOG(L"Attaching dll...");
 		hInst=hInstance;
 		RegisterKModule(&k_lodmixer);
 
@@ -96,6 +97,26 @@ void initLodMixer()
             bptr[5] = 0x90;
             LOG(L"Settings check disabled. Settings overwrite enabled.");
         } 
+    }
+
+    HookCallPoint(code[C_SETTINGS_READ], lodAtSettingsReadPoint, 6, 0, true);
+    HookCallPoint(code[C_SETTINGS_RESET], lodAtSettingsResetPoint, 6, 0, true);
+    if (code[C_VIDEO_CHECK1]!=0)
+    {
+        bptr = (BYTE*)code[C_VIDEO_CHECK1];
+        if (VirtualProtect(bptr, 6, newProtection, &protection)) {
+            /* jmp */  memcpy(bptr,"\xe9\x5d\x01\x00\x00",5);
+            /* nop */  bptr[5] = 0x90;
+        }
+    }
+    if (code[C_VIDEO_CHECK2]!=0)
+    {
+        bptr = (BYTE*)code[C_VIDEO_CHECK2];
+        if (VirtualProtect(bptr, 4, newProtection, &protection)) {
+            // /* jmp to end */  memcpy(bptr,"\xeb\x5b",2);
+            /* jmp */  memcpy(bptr,"\xe9\xaf\x00\x00\x00",5);
+            /* nop */  bptr[5] = 0x90;
+        }
     }
 
     if (_lmconfig.controllerCheckEnabled)
@@ -270,3 +291,52 @@ KEXPORT DWORD lodAtModeCheck(DWORD mode)
         return 1;
     return 0;
 }
+
+void lodAtSettingsReadPoint()
+{
+    __asm {
+        pushfd 
+        push ebp
+        push eax
+        push ebx
+        push ecx
+        push edx
+        push esi
+        push edi
+        call modifySettings
+        pop edi
+        pop esi
+        pop edx
+        pop ecx
+        pop ebx
+        pop eax
+        pop ebp
+        popfd
+        retn
+    }
+}
+
+void lodAtSettingsResetPoint()
+{
+    __asm {
+        pushfd 
+        push ebp
+        push eax
+        push ebx
+        push ecx
+        push edx
+        push esi
+        push edi
+        call modifySettings
+        pop edi
+        pop esi
+        pop edx
+        pop ecx
+        pop ebx
+        pop eax
+        pop ebp
+        popfd
+        retn
+    }
+}
+

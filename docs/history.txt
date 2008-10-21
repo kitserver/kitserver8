@@ -2,6 +2,14 @@ Kitserver 8 HISTORY notes
 =========================
 
 
+2008-10-21
+----------
+v8.0.7
+- afs2fs: now REALLY fixed the bug with rs0e_X.img file.
+          (in 8.0.5, the fix was incomplete)
+- lodmixer: quality check-disable should also work correctly now.
+
+
 2008-10-20
 ----------
 v8.0.6
