@@ -41,8 +41,8 @@ bool BuildControls(HWND parent)
 	borW = WIN_WIDTH - spacer*3;
 	statW = 120;
 	boxW = borW - statW - spacer*3; boxH = 20; statH = 16;
-	//borH = spacer*5 + boxH*4 + 20;
-	borH = spacer*3 + boxH*2 + 10;
+	borH = spacer*6 + boxH*4 + 20;
+	//borH = spacer*3 + boxH*2 + 10;
 
 	HWND staticBorderTopControl = CreateWindowEx(
 			xstyle, L"Static", L"", WS_CHILD | WS_VISIBLE | SS_ETCHEDFRAME,
@@ -88,7 +88,6 @@ bool BuildControls(HWND parent)
 	y += boxH + spacer*2 + 10;
 	
 	// settings
-    /*
 	
 	HWND setListLabel = CreateWindowEx(
 			xstyle, L"Static", lang("lSettingsExecutable"), style,
@@ -124,7 +123,6 @@ bool BuildControls(HWND parent)
 
 	x = spacer*2;
 	y += boxH + spacer*2 + 10;
-    */
 
 	// BOTTOM SECTION - buttons
 
@@ -177,12 +175,12 @@ bool BuildControls(HWND parent)
 
 	SendMessage(topLabel, WM_SETFONT, (WPARAM)hObj, true);
 	SendMessage(g_exeListControl, WM_SETFONT, (WPARAM)hObj, true);
-	//SendMessage(setListLabel, WM_SETFONT, (WPARAM)hObj, true);
-	//SendMessage(g_setListControl, WM_SETFONT, (WPARAM)hObj, true);
+	SendMessage(setListLabel, WM_SETFONT, (WPARAM)hObj, true);
+	SendMessage(g_setListControl, WM_SETFONT, (WPARAM)hObj, true);
 	SendMessage(infoLabel, WM_SETFONT, (WPARAM)hObj, true);
 	SendMessage(g_exeInfoControl, WM_SETFONT, (WPARAM)hObj, true);
-	//SendMessage(infoSetLabel, WM_SETFONT, (WPARAM)hObj, true);
-	//SendMessage(g_setInfoControl, WM_SETFONT, (WPARAM)hObj, true);
+	SendMessage(infoSetLabel, WM_SETFONT, (WPARAM)hObj, true);
+	SendMessage(g_setInfoControl, WM_SETFONT, (WPARAM)hObj, true);
 
 	SendMessage(g_statusTextControl, WM_SETFONT, (WPARAM)hObj, true);
 	SendMessage(g_installButtonControl, WM_SETFONT, (WPARAM)hObj, true);

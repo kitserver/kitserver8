@@ -19,6 +19,8 @@ wchar_t* GAME[] = {
 	L"PES2008 PC 1.20 ViTALiTY NODVD",
     L"PES2009 PC Demo",
     L"PES2009 PC",
+	L"[Settings] PES2009 PC DEMO",
+	L"[Settings] PES2009 PC",
 };
 char* GAME_GUID[] = {
 	"Pro Evolution Soccer 2008 DEMO",
@@ -32,9 +34,10 @@ char* GAME_GUID[] = {
     "+V!TAL!TY+",
     "Pro Evolution Soccer 2009 DEMO",
     "Pro Evolution Soccer 2009",
+    "Pro Evolution Soccer 2009 DEMO",
+    "Pro Evolution Soccer 2009",
 };
-DWORD GAME_GUID_OFFSETS[] = { 0x67aca8, 0x5b5c4, 0x994e74, 0x5ec34, 0x3e0, 0x977c50, 0x977c50, 0x978be8, 0x16e, 0xa5db00, 0xbd0b80, };
-bool ISGAME[] = { true, false, true, false, true, true, true, true, true, true, true };
+DWORD GAME_GUID_OFFSETS[] = { 0x67aca8, 0x5b5c4, 0x994e74, 0x5ec34, 0x3e0, 0x977c50, 0x977c50, 0x978be8, 0x16e, 0xa5db00, 0xbd0b80, 0xa74a3, 0xaa757 };
 BYTE BASE_GAME[] = {
     gvPES2008demo, 
     gvPES2008demoSet, 
@@ -47,9 +50,26 @@ BYTE BASE_GAME[] = {
     gvPES2008v120,
     gvPES2009demo, 
     gvPES2009,
+    gvPES2009demoSet,
+    gvPES2009Set,
 };
 
-// Returns the game version id
+bool ISGAME[] = { 
+	true,	// PES2008 PC DEMO
+	false,	// PES2008 PC DEMO (Settings)
+	true,   // PES2008 PC
+	false,  // PES2008 PC (Settings)
+	true,   // PES2008 PC FLT-NODVD
+	true,   // PES2008 PC 1.10
+	true,   // PES2008 PC 1.10 NODVD
+	true,   // PES2008 PC 1.20
+    true,   // PES2009 PC DEMO
+    true,   // PES2009 PC 
+    false,  // PES2009 PC DEMO (Settings)
+    false,  // PES2009 PC (Settings)
+};
+
+// Returns the game real version id
 int GetRealGameVersion(void)
 {
 	HMODULE hMod = GetModuleHandle(NULL);
@@ -78,12 +98,14 @@ int GetRealGameVersion(wchar_t* filename)
 	for (int i=0; i<sizeof(GAME_GUID)/sizeof(char*); i++)
 	{
 		fseek(f, GAME_GUID_OFFSETS[i], SEEK_SET);
-		fread(guid, strlen(GAME_GUID[i]), 1, f);
-		if (memcmp(guid, GAME_GUID[i], strlen(GAME_GUID[i]))==0)
-		{
-			fclose(f);
-			return i;
-		}
+		if (fread(guid, strlen(GAME_GUID[i]), 1, f)==1)
+        {
+            if (memcmp(guid, GAME_GUID[i], strlen(GAME_GUID[i]))==0)
+            {
+                fclose(f);
+                return i;
+            }
+        }
 	}
 
 	// unrecognized.

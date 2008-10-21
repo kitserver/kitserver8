@@ -38,6 +38,8 @@ enum {
 	gvPES2008v120,      // PES2008 PC 1.20
     gvPES2009demo,      // PES2009 PC DEMO
     gvPES2009,          // PES2009 PC 
+    gvPES2009demoSet,   // PES2009 PC DEMO (Settings)
+    gvPES2009Set,       // PES2009 PC (Settings)
 };
 
 #endif

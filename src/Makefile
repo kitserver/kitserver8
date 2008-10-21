@@ -144,7 +144,7 @@ sched.obj: sched.cpp sched.h sched_addr.h dllinit.h
 kset.lib: kset.obj
 kset.dll: kset.lib detect.obj imageutil.obj configs.obj lang.obj kset.res
 	$(LINK) $(LFLAGS) /out:kset.dll /DLL kset.obj detect.obj imageutil.obj configs.obj lang.obj kset.res $(LIBS)
-kset.obj: kset.cpp kset.h
+kset.obj: kset.cpp kset.h kset_addr.h
 
 kset.res: 
 	$(RC) -r -fo kset.res kset.rc

@@ -345,20 +345,40 @@ KitServer 8 is already installed (1) for\n\
 	
 					newEntryPoint = codeVA;
 				}
+                else if (memcmp(buf, "\xb9\x0c\x58\x4c", 4)==0)
+                {
+                    // special case of PES2009 settings.exe (full game)
+                    codeOffset -= 0x1f;
+                    codeVA -= 0x1f;
+
+                    fseek(f, codeOffset, SEEK_SET);
+					buf[0] = 0x68;  // push
+					DWORD* p = (DWORD*)(buf + 1); p[0] = kservAddr;
+                    buf[5] = 0xeb; buf[6] = 0x09; // jmp short to call
+					buf[0x10] = 0xff; buf[0x11] = 0x15; // call
+					p = (DWORD*)(buf + 0x12); p[0] = loadLibAddr;
+					buf[0x16] = 0xe9; // jmp
+					p = (DWORD*)(buf + 0x17); p[0] = ib + ep - 5 - (ib + codeVA + 0x16);
+					fwrite(buf, 7, 1, f);
+                    fseek(f, codeOffset+0x10, SEEK_SET);
+					fwrite(buf+0x10, 11, 1, f);
+	
+					newEntryPoint = codeVA;
+                }
 				else
 				{
 					//wprintf("Already installed.\n");
 					fclose(f);
 	
 					// show message box with error msg
-					wchar_t buf[BUFLEN];
-					ZeroMemory(buf, WBUFLEN);
-					swprintf(buf, L"\
+					wchar_t mbuf[BUFLEN];
+					ZeroMemory(mbuf, WBUFLEN);
+					swprintf(mbuf, L"\
 ======== INFORMATION! =========\n\
 KitServer 8 is already installed (2) for\n\
 %s.", fileName);
 	
-					wcscat(outmsg, buf);
+					wcscat(outmsg, mbuf);
 					continue;
 				}
 			}
@@ -574,7 +594,17 @@ KitServer 8 is not installed for\n\
 	
 				fseek(f, codeOffset, SEEK_SET);
 				fread(buf, 0x20, 1, f);
-				if (memcmp(buf, zero, 0x20)!=0) {
+
+                if (memcmp(buf, "\xb9\x0c\x58\x4c", 4)==0)
+                {
+                    // special case of PES2009 settings.exe (full game)
+                    fseek(f, -0x40, SEEK_CUR);
+                    fwrite("\xc3\xcc\xcc\xcc\xcc\xcc\xcc\xcc",8,1,f);
+                    fwrite("\xcc\xcc\xcc\xcc\xcc\xcc\xcc\xcc",8,1,f);
+                    fwrite("\xc3\xcc\xcc\xcc\xcc\xcc\xcc\xcc",8,1,f);
+                    fwrite("\xcc\xcc\xcc\xcc\xcc\xcc\xcc\xcc",8,1,f);
+                }
+                else if (memcmp(buf, zero, 0x20)!=0) {
 					fseek(f, -0x20, SEEK_CUR);
 					fwrite(zero, 0x20, 1, f);
 				}
@@ -687,9 +717,11 @@ PES2009 or PES2009 DEMO!\n\0");
 					(LPARAM)L"You selected a settings executable instead a a game \
 executable.\0");
 			} else {
-				SendMessage(infoControl, WM_SETTEXT, (WPARAM)0, 
-					(LPARAM)L"You selected a game executable instead a a settings \
-executable.\0");
+                wchar_t b[1024];
+                ZeroMemory(b,sizeof(b));
+                swprintf(b,L"You selected a game executable instead a a settings  executable (type=%d)",GetRealGameVersion(fileName));
+
+				SendMessage(infoControl, WM_SETTEXT, (WPARAM)0, (LPARAM)b);
 			}
 			continue;
 		}

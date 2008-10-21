@@ -2,6 +2,8 @@
 BYTE allowedGames[] = {
 	gvPES2008demoSet,
 	gvPES2008Set,
+    gvPES2009demoSet,
+    gvPES2009Set,
 };
 
 #define CODELEN 4
@@ -24,12 +26,23 @@ DWORD codeArray[][CODELEN] = {
 		0, 0, 0, 0x418f40,
 	},
   NOCODEADDR
-  NOCODEADDR
   // PES2008 1.10
   NOCODEADDR
   NOCODEADDR
   // PES2008 1.20
   NOCODEADDR
+  // PES2009 demo
+  NOCODEADDR
+  // PES2009
+  NOCODEADDR
+    // [Settings] PES2009 PC demo
+    {
+        0, 0, 0, 0x419b90,
+    },
+    // [Settings] PES2009 PC
+    {
+        0, 0, 0, 0x41c910,
+    },
 };
 
 #define DATALEN 1
@@ -57,6 +70,14 @@ DWORD dataArray[][DATALEN] = {
   NODATAADDR
   NODATAADDR
   // PES2008 1.20
+  NODATAADDR
+  // PES2009 DEMO
+  NODATAADDR
+  // PES2009 
+  NODATAADDR
+  // [Settings] PES2009 DEMO
+  NODATAADDR
+  // [Settings] PES2009 
   NODATAADDR
 };
 

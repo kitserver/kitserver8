@@ -90,22 +90,25 @@ void hookFunctions() {
 	
 	if (code[C_CONTROLLERADDED] != 0)	{
 		bptr = (BYTE*)code[C_CONTROLLERADDED];
-    if (VirtualProtect(bptr, 8, newProtection, &protection)) {
-        bptr[0] = 0xe8;
-        bptr[5] = 0x90; bptr[6] = 0x90; bptr[7] = 0x90;
-        DWORD* ptr = (DWORD*)(code[C_CONTROLLERADDED] + 1);
-        ptr[0] = (DWORD)ksetControllerAdded - (DWORD)(code[C_CONTROLLERADDED] + 5);
-    }
-    VirtualProtect((BYTE*)data[CONTROLLER_NUMBER], 1, newProtection, &protection);
+        if (VirtualProtect(bptr, 8, newProtection, &protection)) {
+            bptr[0] = 0xe8;
+            bptr[5] = 0x90; bptr[6] = 0x90; bptr[7] = 0x90;
+            DWORD* ptr = (DWORD*)(code[C_CONTROLLERADDED] + 1);
+            ptr[0] = (DWORD)ksetControllerAdded - (DWORD)(code[C_CONTROLLERADDED] + 5);
+        }
+        VirtualProtect((BYTE*)data[CONTROLLER_NUMBER], 1, newProtection, &protection);
 	}
 
 	if (allQualities && code[C_QUALITYCHECK] != 0) {
 		bptr = (BYTE*)code[C_QUALITYCHECK];
-    if (VirtualProtect(bptr, 4, newProtection, &protection)) {
-        /* xor eax, eax */ bptr[0] = 0x33; bptr[1] = 0xc0;
-        /* inc eax */ bptr[2] = 0x40;
-        /* ret */ bptr[3] = 0xc3;
-    }
+        if (VirtualProtect(bptr, 8, newProtection, &protection)) {
+            /* xor eax, eax */ bptr[0] = 0x33; bptr[1] = 0xc0;
+            /* inc eax */ bptr[2] = 0x40;
+            /* ret */ bptr[3] = 0xc3;
+            /* nop */ bptr[4] = 0x90;
+            /* nop */ bptr[5] = 0x90;
+            /* nop */ bptr[6] = 0x90;
+        }
 	}
 }
 
