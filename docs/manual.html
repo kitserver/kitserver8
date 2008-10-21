@@ -68,7 +68,7 @@ Below is a quick summary of the available features. Follow the link in the left 
     </tr>
     <tr><td><a href="#lodmixer">LOD Mixer 8.0.6</a></td>
         <th><b>lodmixer.dll</b></th>
-        <td>Various tweaks to graphics and game options: 
+        <td>Select any quality settings (Low,Medium,High); various tweaks to graphics and game options: 
 Any window resolution supported, hidden fullscreen resolutions unlocked;
 Manual/Automatic aspect ratio correction.
         </td>
@@ -87,9 +87,13 @@ As with previous version of Kitserver, you have to unpack the archive to your PE
 
 <img src="layout.png"/>
 
-<p>Then go to <b>kitserver</b> folder and run the <b>setup.exe</b>. If not already chosen automatically, select your executable file (pes2009.exe) from the
-drop-down list, and click "Install". If you choose that you don't want to use 
-Kitserver any longer, run setup.exe again and click "Remove".
+<p>Then go to <b>kitserver</b> folder and run the <b>setup.exe</b>.
+What is new is that you can now also select your
+settings.exe. This is necessary because some changes are only possible in that
+file. simply select these both files (they should already be preselected) and
+click "Install". If you choose that you don't want to use Kitserver any longer,
+run setup.exe again and click "Remove". You can also install/remove Kitserver
+only for one exe by setting the other one to "no action".
 </p>
 
 <img src="setup.png" style="border:0"/>
@@ -105,12 +109,21 @@ setup --remove --gfile={game-exe} --sfile={settings-exe}<br />
 </p>
 <p>Example:</p>
 <p>
-<b>setup --install --gfile=..\pes2009.exe</b>
+<b>setup --install --gfile=..\pes2009.exe --sfile=..\settings.exe</b>
 </p>
 
 <h3>3. Usage and configuration</h3>
 
-<h5>3.1. Main configuration file: config.txt</h5>
+<h5>3.1. Running settings.exe</h5>
+
+<p>
+After installing Kitserver, if you run <b>settings.exe</b> from your game main folder, you are asked if you want to enable all quality
+levels. In PES2009, Konami doesn't allow you to choose a high quality level if
+the game thinks your PC isn't good enough for that. If you click on "Yes", that
+check is removed and you can try if they are right with their assumption.
+</p>
+
+<h5>3.2. Main configuration file: config.txt</h5>
 
 <p>
 In the <b>kitserver</b> folder, there is the program's main configuration file - <b>config.txt</b>. This is where you would need to make changes to enable/disable individual modules (DLLs), and/or configure module settings.
@@ -120,15 +133,23 @@ In the <b>kitserver</b> folder, there is the program's main configuration file -
 </p>
 
 <pre>
+[afs2fs]
+debug = 1
+
 [afsio]
 debug = 1
 
-[afs2fs]
-debug = 1
+[camera]
+angle = 30
 
 [kload]
 dll = afsio.dll
 dll = afs2fs.dll
+dll = camera.dll
+dll = lodmixer.dll
+
+[lodmixer]
+aspect-ratio.correction.enabled = 1
 </pre>
 
 <p>
@@ -139,7 +160,7 @@ Each module can have its own configuration section, which starts with <b>[<i>mod
 </p>
 
 
-<h5>3.2. Configuration tool - config.exe</h5>
+<h5>3.3. Configuration tool - config.exe</h5>
 
 <p>Formerly known as lodcfg.exe (it used to be the GUI tool for LOD mixer only, but now it covers other configuration options as well), this simple GUI program allows to modify some configuration settings in config.txt. It's a helper tool and all that it does, you can also do manually, by editing config.txt in your favourite text editor. <span class="note">In fact, some things you can <i>only</i> do manually - like adding and removing modules (DLLs)</span>. But for simple things - like changing resolution, or choosing camera angle - it's faster and easier to just launch <b>config.exe</b>, quickly adjust things, then click [Save] button, and you're done.
 </p>
