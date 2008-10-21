@@ -10,7 +10,7 @@
 #define THISMOD &k_afsio
 
 #define MODID 123
-#define NAMELONG L"AFSIO Module 8.0.3.0"
+#define NAMELONG L"AFSIO Module 8.0.7.0"
 #define NAMESHORT L"AFSIO"
 #define DEFAULT_DEBUG 0
 
@@ -41,7 +41,7 @@
 #define CREATE_FLAGS 0
 
 #define MAX_RELPATH 30
-#define MAX_AFSID 13
+#define MAX_AFSID 16
 
 // VARIABLES
 HINSTANCE hInst = NULL;
