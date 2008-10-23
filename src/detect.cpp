@@ -19,6 +19,7 @@ wchar_t* GAME[] = {
 	L"PES2008 PC 1.20 ViTALiTY NODVD",
     L"PES2009 PC Demo",
     L"PES2009 PC",
+    L"PES2009 PC 1.10",
 	L"[Settings] PES2009 PC DEMO",
 	L"[Settings] PES2009 PC",
 };
@@ -34,10 +35,11 @@ char* GAME_GUID[] = {
     "+V!TAL!TY+",
     "Pro Evolution Soccer 2009 DEMO",
     "Pro Evolution Soccer 2009",
+    "Pro Evolution Soccer 2009",
     "Pro Evolution Soccer 2009 DEMO",
     "Pro Evolution Soccer 2009",
 };
-DWORD GAME_GUID_OFFSETS[] = { 0x67aca8, 0x5b5c4, 0x994e74, 0x5ec34, 0x3e0, 0x977c50, 0x977c50, 0x978be8, 0x16e, 0xa5db00, 0xbd0b80, 0xa74a3, 0xaa757 };
+DWORD GAME_GUID_OFFSETS[] = { 0x67aca8, 0x5b5c4, 0x994e74, 0x5ec34, 0x3e0, 0x977c50, 0x977c50, 0x978be8, 0x16e, 0xa5db00, 0xbd0b80, 0xbd0b70, 0xa74a3, 0xaa757 };
 BYTE BASE_GAME[] = {
     gvPES2008demo, 
     gvPES2008demoSet, 
@@ -50,6 +52,7 @@ BYTE BASE_GAME[] = {
     gvPES2008v120,
     gvPES2009demo, 
     gvPES2009,
+    gvPES2009v110,
     gvPES2009demoSet,
     gvPES2009Set,
 };
@@ -65,6 +68,7 @@ bool ISGAME[] = {
 	true,   // PES2008 PC 1.20
     true,   // PES2009 PC DEMO
     true,   // PES2009 PC 
+    true,   // PES2009 PC 1.10
     false,  // PES2009 PC DEMO (Settings)
     false,  // PES2009 PC (Settings)
 };

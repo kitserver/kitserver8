@@ -6,5 +6,6 @@ BYTE allowedGames[] = {
 	gvPES2008v120,
     gvPES2009demo,
     gvPES2009,
+    gvPES2009v110,
 };
 

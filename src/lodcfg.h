@@ -6,7 +6,7 @@
 #else
 #define LODCFG_WINDOW_TITLE "Kitserver 8 Configuration (debug build)"
 #endif
-#define CREDITS "Program info: v8.0.7 (10/2008) by Juce."
+#define CREDITS "Program info: v8.0.8 (10/2008) by Juce."
 
 typedef struct _LCM {
     WORD homeTeamId;
