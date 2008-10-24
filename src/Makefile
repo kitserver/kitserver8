@@ -11,12 +11,12 @@ LPLIBPNG=soft\libpng-1.2.8-lib\lib
 LPZLIB=soft\zlib123-dll\lib
 LIBPNGDLL=soft\libpng-1.2.8-bin\libpng13.dll 
 ZLIBDLL=soft\zlib123-dll\zlib1.dll
+D3DX9=d3dx9.lib
 
 !if "$(debug)"=="1"
-D3DX9=d3dx9d.lib
+EXTRA_CFLAGS=/DDEBUG
 !else
 EXTRA_CFLAGS=/DMYDLL_RELEASE_BUILD
-D3DX9=d3dx9.lib
 !endif
 
 # 4731: warning about ebp modification
