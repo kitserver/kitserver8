@@ -26,6 +26,7 @@
     ((dw<<24 & 0xff000000) | (dw<<8  & 0x00ff0000) | \
     (dw>>8  & 0x0000ff00) | (dw>>24 & 0x000000ff))
 
+#define round(x) ((abs((x)-(int)(x))<0.5)?(int)(x):(int)((x)+1))
 
 // VARIABLES
 HINSTANCE hInst = NULL;
@@ -160,8 +161,9 @@ HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
             bptr[11] = 0x90;
         }
 
-        BYTE enduranceValue = 
-            _time_config.cup_time * _time_config.fatigue_factor;
+        BYTE enduranceValue = max(1, 
+            round(_time_config.cup_time * _time_config.fatigue_factor));
+        LOG1N(L"enduranceValue = %d", enduranceValue);
 
         bptr = (BYTE*)code[C_SET_CUP_ENDURANCE];
         protection = 0;
