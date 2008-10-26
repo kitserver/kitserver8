@@ -4,6 +4,8 @@ BYTE allowedGames[] = {
     gvPES2008,
     gvPES2008v110,
     gvPES2008v120,
+    gvPES2009,
+    gvPES2009v110,
 };
 
 #define CODELEN 3
@@ -11,7 +13,7 @@ enum {
     C_SET_EXHIB_TIME, C_SET_CUP_ENDURANCE, C_SET_CUP_TIME,
 };
 
-#define NOCODEADDR {0,0}
+#define NOCODEADDR {0,0,0}
 DWORD codeArray[][CODELEN] = { 
     // PES2008 DEMO
     NOCODEADDR,
@@ -32,6 +34,16 @@ DWORD codeArray[][CODELEN] = {
     // PES2008 1.20
     { 
         0xaaa552, 0x905722, 0x9025cd,
+    },
+    // PES2009 Demo
+    NOCODEADDR,
+    // PES2009 
+    { 
+        0xdc1a89, 0x4f1358, 0x4ec90d,
+    },
+    // PES2009 1.10
+    { 
+        0xdd34b9, 0x4f13d8, 0x4ec98d,
     },
 };
 
@@ -55,6 +67,12 @@ DWORD dataArray[][DATALEN] = {
     NODATAADDR,
     NODATAADDR,
     // PES2008 1.20
+    NODATAADDR,
+    // PES2009 Demo
+    NODATAADDR,
+    // PES2009 
+    NODATAADDR,
+    // PES2009 1.10
     NODATAADDR,
 };
 

@@ -168,10 +168,13 @@ HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
         newProtection = PAGE_EXECUTE_READWRITE;
         if (bptr && VirtualProtect(bptr, 8, newProtection, &protection)) 
         {
-            bptr[0] = 0xc7;  // mov ecx, enduranceValue
+            bptr[0] = 0xc7;  
             bptr[1] = 0x44;
             bptr[2] = 0x24;
-            bptr[3] = 0x24;
+            if (getPesInfo()->gameVersion < gvPES2009demo)
+                bptr[3] = 0x24; // mov [esp+24], enduranceValue
+            else
+                bptr[3] = 0x14; // mov [esp+14], enduranceValue
             bptr[4] = enduranceValue;
             bptr[5] = 0;
             bptr[6] = 0;
