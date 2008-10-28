@@ -45,3 +45,25 @@ typedef struct _KIT_OBJECT {
 	DWORD kitIdx;
 } KIT_OBJECT;
 
+typedef struct _KIT_INFO {
+    BYTE unknown1[0x50];
+    WORD slot;
+} KIT_INFO; // size = 0x52
+
+typedef struct _TEAM_KIT_INFO
+{
+    KIT_INFO ga;
+    KIT_INFO gb;
+    KIT_INFO pa;
+    KIT_INFO pb;
+} TEAM_KIT_INFO;  // size = 0x148
+
+typedef struct _TEAM_NAME {
+    BYTE unknown1[0x46];
+    char name[0x46];
+    char abbr[4];
+    WORD teamId;
+    WORD teamId2;
+    BYTE unknown2[8];
+} TEAM_NAME; // size = 0x9c
+

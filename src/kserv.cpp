@@ -28,6 +28,9 @@
 #include <hash_map>
 #include <wchar.h>
 
+#define NUM_TEAMS 258
+#define NUM_TEAMS_TOTAL 314
+
 // VARIABLES
 HINSTANCE hInst = NULL;
 KMOD k_kserv = {MODID, NAMELONG, NAMESHORT, DEFAULT_DEBUG};
@@ -46,6 +49,13 @@ HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
 	
 DWORD STDMETHODCALLTYPE kservInitNewKit(DWORD p1);
 DWORD kservAfterCreateTexture(DWORD p1);
+
+WORD GetTeamIdByIndex(int index);
+char* GetTeamNameByIndex(int index);
+char* GetTeamNameById(WORD id);
+void kservAfterReadNamesCallPoint();
+KEXPORT void kservAfterReadNames();
+
 
 /*******************/
 /* DLL Entry Point */
@@ -75,6 +85,33 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 	return true;
 }
 
+WORD GetTeamIdByIndex(int index)
+{
+    if (index < 0 || index >= NUM_TEAMS_TOTAL)
+        return 0xffff; // invalid index
+    TEAM_NAME* teamName = **(TEAM_NAME***)data[TEAM_NAMES];
+    return teamName[index].teamId;
+}
+
+char* GetTeamNameByIndex(int index)
+{
+    if (index < 0 || index >= NUM_TEAMS_TOTAL)
+        return NULL; // invalid index
+    TEAM_NAME* teamName = **(TEAM_NAME***)data[TEAM_NAMES];
+    return (char*)&(teamName[index].name);
+}
+
+char* GetTeamNameById(WORD id)
+{
+    TEAM_NAME* teamName = **(TEAM_NAME***)data[TEAM_NAMES];
+    for (int i=0; i<NUM_TEAMS_TOTAL; i++)
+    {
+        if (teamName[i].teamId == id)
+            return (char*)&(teamName[i].name);
+    }
+    return NULL;
+}
+
 HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
     D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags,
     D3DPRESENT_PARAMETERS *pPresentationParameters, 
@@ -87,6 +124,8 @@ HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
 	// hooks
 	origInitNewKit = (INIT_NEW_KIT)hookVtableFunction(code[C_KIT_VTABLE], 1, kservInitNewKit);
 	MasterHookFunction(code[C_AFTER_CREATE_TEXTURE], 1, kservAfterCreateTexture);
+    HookCallPoint(code[C_AFTER_READ_NAMES], 
+            kservAfterReadNamesCallPoint, 6, 5);
 	
 	TRACE(L"Initialization complete.");
 	return D3D_OK;
@@ -155,3 +194,52 @@ DWORD kservAfterCreateTexture(DWORD p1)
 	
 	return MasterCallNext(p1);
 }
+
+void kservAfterReadNamesCallPoint()
+{
+    __asm {
+        pushfd 
+        push ebp
+        push eax
+        push ebx
+        push ecx
+        push edx
+        push esi
+        push edi
+        mov [eax+0x2884], ecx  // execute replaced code
+        call kservAfterReadNames
+        pop edi
+        pop esi
+        pop edx
+        pop ecx
+        pop ebx
+        pop eax
+        pop ebp
+        popfd
+        retn
+    }
+}
+
+KEXPORT void kservAfterReadNames()
+{
+    // Dump slot information
+    
+    TEAM_KIT_INFO* teamInfo = (TEAM_KIT_INFO*)(*(DWORD*)data[PLAYERS_DATA] + data[TEAM_KIT_INFO_OFFSET]);
+    LOG1N(L"teamInfo = %08x", (DWORD)teamInfo);
+
+    // team names are stored in Utf-8, so we
+    // write the bytes as is. (Names are original: before edit data is loaded)
+    wstring filename(getPesInfo()->myDir);
+    filename += L"\\slots.txt";
+    FILE* f = _wfopen(filename.c_str(),L"wt");
+    for (int i=0; i<NUM_TEAMS; i++)
+    {
+        WORD teamId = GetTeamIdByIndex(i);
+        if (teamId == 0xffff)
+            continue;
+        fprintf(f, "slot: %6d\tteam: %3d (%04x) %s\n", 
+                (short)teamInfo[i].ga.slot, i, teamId, GetTeamNameByIndex(i));
+    }
+    fclose(f);
+}
+
