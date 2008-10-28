@@ -672,3 +672,30 @@ KEXPORT bool afsioExtendSlots_cv0(int num_slots)
     return true;
 }
 
+KEXPORT bool afsioExtendSlots(int afsId, int num_slots)
+{
+    // extend BIN-sizes table
+    BIN_SIZE_INFO** tabArray = (BIN_SIZE_INFO**)data[BIN_SIZES_TABLE];
+    if (!tabArray)
+        return false;
+    BIN_SIZE_INFO* table = tabArray[afsId];
+    if (!table)
+        return false;
+
+    // check if already enough slots
+    if (num_slots <= table->numItems)
+        return true;
+
+    int newSize = sizeof(DWORD)*(num_slots)+0x120;
+    BIN_SIZE_INFO* newTable = (BIN_SIZE_INFO*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, newSize);
+    memcpy(newTable, table, table->structSize);
+    for (int i=table->numItems; i<num_slots; i++)
+        newTable->sizes[i] = 0x800; // back-fill with 1 page defaults
+
+    newTable->structSize = newSize;
+    newTable->numItems = num_slots;
+    newTable->numItems2 = num_slots;
+    tabArray[afsId] = newTable; // point to new structure
+    return true;
+}
+

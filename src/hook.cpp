@@ -1393,7 +1393,7 @@ BOOL WINAPI hookWriteFile(
 )
 {
     TRACE1N(L"WriteFile: len=%d", nNumberOfBytesToWrite);
-    if (nNumberOfBytesToWrite == 0x12aaec)  // edit data
+    if (nNumberOfBytesToWrite == data[EDIT_DATA_SIZE])  // edit data
     {
         LOG(L"Saving Edit Data...");
 
@@ -1406,10 +1406,11 @@ BOOL WINAPI hookWriteFile(
         // adjust CRC32 checksum
         DWORD* pChecksum = (DWORD*)((BYTE*)lpBuffer + 0x108);
         *pChecksum = 0;
-        *pChecksum = GetCRC((BYTE*)lpBuffer + 0x100, 0x12aaec - 0x100);
+        *pChecksum = GetCRC((BYTE*)lpBuffer + 0x100, 
+                data[EDIT_DATA_SIZE] - 0x100);
     }
 
-    else if (nNumberOfBytesToWrite == 0x377f80)  // replay data
+    else if (nNumberOfBytesToWrite == data[REPLAY_DATA_SIZE])  // replay data
     {
         LOG(L"Saving Replay Data...");
 
@@ -1422,7 +1423,8 @@ BOOL WINAPI hookWriteFile(
         // adjust CRC32 checksum
         DWORD* pChecksum = (DWORD*)((BYTE*)lpBuffer + 0x108);
         *pChecksum = 0;
-        *pChecksum = GetCRC((BYTE*)lpBuffer + 0x100, 0x377f80 - 0x100);
+        *pChecksum = GetCRC((BYTE*)lpBuffer + 0x100, 
+                data[REPLAY_DATA_SIZE] - 0x100);
     }
 
     BOOL result = _writeFile(
@@ -1432,9 +1434,9 @@ BOOL WINAPI hookWriteFile(
             lpNumberOfBytesWritten,
             lpOverlapped);
 
-    if (result && nNumberOfBytesToWrite == 0x12aaec)  // edit data
+    if (result && nNumberOfBytesToWrite == data[EDIT_DATA_SIZE])
         LOG(L"Edit Data SAVED.");
-    else if (result && nNumberOfBytesToWrite == 0x377f80)  // replay data
+    else if (result && nNumberOfBytesToWrite == data[REPLAY_DATA_SIZE])
         LOG(L"Replay Data SAVED.");
 
     return result;
@@ -1463,7 +1465,7 @@ BOOL WINAPI hookReadFile(
     if (!result)
         return result;  // failed to read: return quickly.
 
-    if (nNumberOfBytesToRead == 0x12aaec)  // edit data
+    if (nNumberOfBytesToRead == data[EDIT_DATA_SIZE])  // edit data
     {
         LOG(L"Loading Edit Data...");
 
@@ -1476,10 +1478,11 @@ BOOL WINAPI hookReadFile(
         // adjust CRC32 checksum
         DWORD* pChecksum = (DWORD*)((BYTE*)lpBuffer + 0x108);
         *pChecksum = 0;
-        *pChecksum = GetCRC((BYTE*)lpBuffer + 0x100, 0x12aaec - 0x100);
+        *pChecksum = GetCRC((BYTE*)lpBuffer + 0x100, 
+                data[EDIT_DATA_SIZE] - 0x100);
     }
 
-    else if (nNumberOfBytesToRead == 0x377f80)  // replay data
+    else if (nNumberOfBytesToRead == data[REPLAY_DATA_SIZE])  // replay data
     {
         LOG(L"Loading Replay Data...");
 
@@ -1492,12 +1495,13 @@ BOOL WINAPI hookReadFile(
         // adjust CRC32 checksum
         DWORD* pChecksum = (DWORD*)((BYTE*)lpBuffer + 0x108);
         *pChecksum = 0;
-        *pChecksum = GetCRC((BYTE*)lpBuffer + 0x100, 0x377f80 - 0x100);
+        *pChecksum = GetCRC((BYTE*)lpBuffer + 0x100, 
+                data[REPLAY_DATA_SIZE] - 0x100);
     }
 
-    if (result && nNumberOfBytesToRead == 0x12aaec)  // edit data
+    if (result && nNumberOfBytesToRead == data[EDIT_DATA_SIZE])
         LOG(L"Edit Data LOADED.");
-    else if (result && nNumberOfBytesToRead == 0x377f80)  // replay data
+    else if (result && nNumberOfBytesToRead == data[REPLAY_DATA_SIZE])
         LOG(L"Replay Data LOADED.");
 
     return result;

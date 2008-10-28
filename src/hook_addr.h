@@ -75,7 +75,7 @@ DWORD codeArray[][CODELEN] = {
 		0, 0, 
 		0, 0, 
         0x0, 0x0, //TOFIX
-        0x0, 0x0, //TOFIX
+        0xdf7c31, 0xdf77bd,
         0x0, 0x0, //TOFIX
   },
   // PES2009 1.10
@@ -85,20 +85,21 @@ DWORD codeArray[][CODELEN] = {
 		0, 0, 
 		0, 0, 
         0x0, 0x0, //TOFIX
-        0x0, 0x0, //TOFIX
+        0xdf8751, 0xdf82dd,
         0x0, 0x0, //TOFIX
   },
 };
 
-#define DATALEN 10
+#define DATALEN 12
 enum {
 	PLAYERDATA, ISREFEREEADDR,
 	GENERALINFO, REPLAYGENERALINFO,
     MENU_MODE_IDX, MAIN_SCREEN_INDICATOR, INGAME_INDICATOR,
     NEXT_MATCH_DATA_PTR, CUP_MODE_PTR, EDIT_DATA_PTR,
+    EDIT_DATA_SIZE, REPLAY_DATA_SIZE,
 };
 
-#define NODATAADDR {0,0,0,0,0,0,0,0,0,0},
+#define NODATAADDR {0,0,0,0,0,0,0,0,0,0,0,0},
 DWORD dataArray[][DATALEN] = {
   // PES2008 DEMO
 	{
@@ -106,6 +107,7 @@ DWORD dataArray[][DATALEN] = {
 		0, 0, // TODO
         0, 0, 0,
         0, 0, 0,
+        0, 0,
 	},
 	// [Settings] PES2008 PC DEMO
 	NODATAADDR
@@ -115,6 +117,7 @@ DWORD dataArray[][DATALEN] = {
 		0x12544c4, 0x1251e04,
         0x1250fc8, 0x1250fb8, 0x1250e08, 
         0x1250d4c, 0x1251ec8, 0x1250d44,
+        0x12aaec, 0x377f80,
 	},
     // [Settings] PES2008 PC
 	NODATAADDR
@@ -125,6 +128,7 @@ DWORD dataArray[][DATALEN] = {
 		0x12554ec, 0x1252e2c,
         0x1251ff0, 0x1251fe0, 0x1251e30,
         0x1251d74, 0x1252ef0, 0x1251d6c,
+        0x12aaec, 0x377f80,
 	},
 	NODATAADDR
 	// PES2008 PC 1.20
@@ -133,6 +137,7 @@ DWORD dataArray[][DATALEN] = {
         0, 0,
         0x1252ff0, 0x1253010, 0x1252e48,
         0x1252d70, 0x1253f08, 0x1252d68,
+        0x12aaec, 0x377f80,
     },
 	// PES2009 DEMO
     {
@@ -140,6 +145,7 @@ DWORD dataArray[][DATALEN] = {
         0, 0,
         0x0, 0x0, 0x0, //TOFIX
         0x0, 0x0, 0x0, //TOFIX
+        0, 0,
     },
 	// PES2009
     {
@@ -147,6 +153,7 @@ DWORD dataArray[][DATALEN] = {
         0, 0,
         0x163f508, 0x0, 0x0, //TOFIX
         0x163f9ec, 0x0, 0x163f9e4, //TOFIX
+        0x392f10, 0x3fa288,
     },
 	// PES2009 1.10
     {
@@ -154,6 +161,7 @@ DWORD dataArray[][DATALEN] = {
         0, 0,
         0x163f510, 0x0, 0x0, //TOFIX
         0x163f9ec, 0x0, 0x163f9e8, //TOFIX
+        0x392f10, 0x3fa288,
     },
 };
 
