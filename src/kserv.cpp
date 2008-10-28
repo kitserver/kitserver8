@@ -31,6 +31,27 @@
 #define NUM_TEAMS 258
 #define NUM_TEAMS_TOTAL 314
 
+enum
+{
+    BIN_KIT_GK,
+    BIN_KIT_PL,
+    BIN_FONT_GA,
+    BIN_FONT_GB,
+    BIN_FONT_PA,
+    BIN_FONT_PB,
+    BIN_NUMS_GA,
+    BIN_NUMS_GB,
+    BIN_NUMS_PA,
+    BIN_NUMS_PB,
+};
+
+class kserv_config_t 
+{
+public:
+    kserv_config_t() : _use_description(true) {}
+    bool _use_description;
+};
+
 // VARIABLES
 HINSTANCE hInst = NULL;
 KMOD k_kserv = {MODID, NAMELONG, NAMESHORT, DEFAULT_DEBUG};
@@ -41,11 +62,16 @@ INIT_NEW_KIT origInitNewKit = NULL;
 KIT_OBJECT* initedKits[NUM_INITED_KITS];
 int nextInitedKitsIdx = 0;
 
+GDB* _gdb;
+kserv_config_t _kserv_config;
+hash_map<int,TEAM_KIT_INFO> _orgTeamKitInfo;
+
 // FUNCTIONS
 HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
     D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags,
     D3DPRESENT_PARAMETERS *pPresentationParameters, 
     IDirect3DDevice9** ppReturnedDeviceInterface);
+void kservConfig(char* pName, const void* pValue, DWORD a);
 	
 DWORD STDMETHODCALLTYPE kservInitNewKit(DWORD p1);
 DWORD kservAfterCreateTexture(DWORD p1);
@@ -55,6 +81,11 @@ char* GetTeamNameByIndex(int index);
 char* GetTeamNameById(WORD id);
 void kservAfterReadNamesCallPoint();
 KEXPORT void kservAfterReadNames();
+void DumpSlotsInfo();
+void kservReadEditData(LPCVOID data, DWORD size);
+void kservWriteEditData(LPCVOID data, DWORD size);
+void RelinkTeam(int teamIndex, TEAM_KIT_INFO* teamKitInfo=NULL);
+void UndoRelinks();
 
 
 /*******************/
@@ -80,6 +111,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
 		LOG(L"Shutting down this module...");
+        if (_gdb) delete _gdb;
 	}
 	
 	return true;
@@ -122,13 +154,42 @@ HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
     LOG(L"Initializing Kserv Module");
 	
 	// hooks
-	origInitNewKit = (INIT_NEW_KIT)hookVtableFunction(code[C_KIT_VTABLE], 1, kservInitNewKit);
-	MasterHookFunction(code[C_AFTER_CREATE_TEXTURE], 1, kservAfterCreateTexture);
+	//origInitNewKit = (INIT_NEW_KIT)hookVtableFunction(code[C_KIT_VTABLE], 1, kservInitNewKit);
+	//MasterHookFunction(code[C_AFTER_CREATE_TEXTURE], 1, kservAfterCreateTexture);
     HookCallPoint(code[C_AFTER_READ_NAMES], 
             kservAfterReadNamesCallPoint, 6, 5);
-	
+
+    // Load GDB
+    LOG1S(L"pesDir: {%s}",getPesInfo()->pesDir);
+    LOG1S(L"myDir : {%s}",getPesInfo()->myDir);
+    LOG1S(L"gdbDir: {%sGDB}",getPesInfo()->gdbDir);
+    _gdb = new GDB(getPesInfo()->gdbDir, false);
+    LOG1N(L"Teams in GDB map: %d", _gdb->uni.size());
+
+    getConfig("kserv", "debug", DT_DWORD, 1, kservConfig);
+    getConfig("kserv", "use.description", DT_DWORD, 2, kservConfig);
+    LOG1N(L"debug = %d", k_kserv.debug);
+    LOG1N(L"use.description = %d", _kserv_config._use_description);
+
+    // add callbacks
+    addReadEditDataCallback(kservReadEditData);
+    addWriteEditDataCallback(kservWriteEditData);
+
 	TRACE(L"Initialization complete.");
 	return D3D_OK;
+}
+
+void kservConfig(char* pName, const void* pValue, DWORD a)
+{
+	switch (a) {
+		case 1: // debug
+			k_kserv.debug = *(DWORD*)pValue;
+			break;
+        case 2: // use-description
+            _kserv_config._use_description = *(DWORD*)pValue == 1;
+            break;
+	}
+	return;
 }
 
 KEXPORT DWORD hookVtableFunction(DWORD vtableAddr, DWORD offset, void* func)
@@ -142,8 +203,6 @@ KEXPORT DWORD hookVtableFunction(DWORD vtableAddr, DWORD offset, void* func)
 		*vtableEntry = (DWORD)func;
 	return orig;
 }
-
-
 
 DWORD STDMETHODCALLTYPE kservInitNewKit(DWORD p1)
 {
@@ -222,13 +281,20 @@ void kservAfterReadNamesCallPoint()
 
 KEXPORT void kservAfterReadNames()
 {
-    // Dump slot information
-    
-    TEAM_KIT_INFO* teamInfo = (TEAM_KIT_INFO*)(*(DWORD*)data[PLAYERS_DATA] + data[TEAM_KIT_INFO_OFFSET]);
-    LOG1N(L"teamInfo = %08x", (DWORD)teamInfo);
+    // dump slot information
+    DumpSlotsInfo();
 
-    // team names are stored in Utf-8, so we
-    // write the bytes as is. (Names are original: before edit data is loaded)
+    // re-link Russia
+    RelinkTeam(21);
+}
+
+void DumpSlotsInfo()
+{
+    // team names are stored in Utf-8, so we write the bytes as is.
+    TEAM_KIT_INFO* teamKitInfo = (TEAM_KIT_INFO*)(*(DWORD*)data[PLAYERS_DATA] 
+            + data[TEAM_KIT_INFO_OFFSET]);
+    LOG1N(L"teamKitInfo = %08x", (DWORD)teamKitInfo);
+
     wstring filename(getPesInfo()->myDir);
     filename += L"\\slots.txt";
     FILE* f = _wfopen(filename.c_str(),L"wt");
@@ -238,8 +304,79 @@ KEXPORT void kservAfterReadNames()
         if (teamId == 0xffff)
             continue;
         fprintf(f, "slot: %6d\tteam: %3d (%04x) %s\n", 
-                (short)teamInfo[i].ga.slot, i, teamId, GetTeamNameByIndex(i));
+                (short)teamKitInfo[i].ga.slot, 
+                i, teamId, GetTeamNameByIndex(i));
     }
     fclose(f);
+}
+
+void RelinkTeam(int teamIndex, TEAM_KIT_INFO* teamKitInfo)
+{
+    if (!teamKitInfo)
+        teamKitInfo = (TEAM_KIT_INFO*)(*(DWORD*)data[PLAYERS_DATA] 
+                + data[TEAM_KIT_INFO_OFFSET]);
+
+    TEAM_KIT_INFO tki;
+    tki.ga.slot = teamKitInfo[teamIndex].ga.slot;
+    tki.pa.slot = teamKitInfo[teamIndex].pa.slot;
+    tki.gb.slot = teamKitInfo[teamIndex].gb.slot;
+    tki.pb.slot = teamKitInfo[teamIndex].pb.slot;
+
+    pair<hash_map<int,TEAM_KIT_INFO>::iterator,bool> ires =
+        _orgTeamKitInfo.insert(pair<int,TEAM_KIT_INFO>(teamIndex,tki));
+    if (!ires.second)
+    {
+        // already saved in the map.
+        TRACE1N(L"teamKitInfo for %d already saved.", teamIndex);
+    }
+
+    WORD slot = 0;
+    teamKitInfo[teamIndex].ga.slot = slot;
+    teamKitInfo[teamIndex].pa.slot = slot;
+    teamKitInfo[teamIndex].gb.slot = slot;
+    teamKitInfo[teamIndex].pb.slot = slot;
+
+    LOG2N(L"team %d relinked to slot 0x%04x", teamIndex, slot); 
+}
+
+void UndoRelinks(TEAM_KIT_INFO* teamKitInfo)
+{
+    for (hash_map<int,TEAM_KIT_INFO>::iterator it = _orgTeamKitInfo.begin();
+            it != _orgTeamKitInfo.end();
+            it++)
+    {
+        teamKitInfo[it->first].ga.slot = it->second.ga.slot;
+        teamKitInfo[it->first].pa.slot = it->second.pa.slot;
+        teamKitInfo[it->first].gb.slot = it->second.gb.slot;
+        teamKitInfo[it->first].pb.slot = it->second.pb.slot;
+
+        LOG1N(L"Team %d slot links restored", it->first);
+    }
+}
+
+/**
+ * edit data read callback
+ */
+void kservReadEditData(LPCVOID buf, DWORD size)
+{
+    // dump slot information again
+    DumpSlotsInfo();
+
+    // re-link Russia
+    TEAM_KIT_INFO* teamKitInfo = (TEAM_KIT_INFO*)((BYTE*)buf 
+            + 0x120 + data[TEAM_KIT_INFO_OFFSET] - 8);
+    RelinkTeam(21, teamKitInfo);
+}
+
+/**
+ * edit data write callback
+ */
+void kservWriteEditData(LPCVOID buf, DWORD size)
+{
+    // undo re-linking: we don't want dynamic relinking
+    // to be saved in PES2009_EDIT01.bin
+    TEAM_KIT_INFO* teamKitInfo = (TEAM_KIT_INFO*)((BYTE*)buf 
+            + 0x120 + data[TEAM_KIT_INFO_OFFSET] - 8);
+    UndoRelinks(teamKitInfo);
 }
 

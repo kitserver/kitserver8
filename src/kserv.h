@@ -53,8 +53,8 @@ typedef struct _KIT_INFO {
 typedef struct _TEAM_KIT_INFO
 {
     KIT_INFO ga;
-    KIT_INFO gb;
     KIT_INFO pa;
+    KIT_INFO gb;
     KIT_INFO pb;
 } TEAM_KIT_INFO;  // size = 0x148
 
