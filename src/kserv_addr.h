@@ -32,13 +32,14 @@ DWORD codeArray[][CODELEN] = {
     },
 };
 
-#define DATALEN 4 
+#define DATALEN 5 
 enum {
 	NEXT_MATCH_DATA_PTR, PLAYERS_DATA,
-    TEAM_NAMES, TEAM_KIT_INFO_OFFSET
+    TEAM_NAMES, TEAM_KIT_INFO_OFFSET,
+    NUM_SLOTS_PTR,
 };
 
-#define NODATAADDR {0,0,0,0},
+#define NODATAADDR {0,0,0,0,0},
 DWORD dataArray[][DATALEN] = {
 	// PES2008
     NODATAADDR
@@ -54,12 +55,14 @@ DWORD dataArray[][DATALEN] = {
     // PES2009
     {
         0x163f9ec, 0x163f9e8,
-        0x163f9f0, 0x16a308
+        0x163f9f0, 0x16a308,
+        0,
     },
     // PES2009 v1.10
     {
         0x163f9ec, 0x163f9e8,
-        0x163f9f0, 0x16a308
+        0x163f9f0, 0x16a308,
+        0x12a8d74,
     }
 };
 

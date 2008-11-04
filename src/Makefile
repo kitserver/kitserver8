@@ -126,9 +126,9 @@ kload.res:
 	$(RC) -r -fo kload.res kload.rc
 	
 	
-kserv.lib: kserv.obj gdb.obj configs.obj kload.dll pngdib
+kserv.lib: kserv.obj gdb.obj configs.obj afsio.dll kload.dll pngdib
 kserv.dll: kserv.lib kserv.res
-	$(LINK) $(LFLAGS) /out:kserv.dll /LIBPATH:$(LPPNGDIB) /LIBPATH:$(LPLIBPNG) /LIBPATH:$(LPZLIB) /DLL kserv.obj gdb.obj configs.obj kserv.res $(LIBS) $(D3DX9) kload.lib $(LIBSDLL)
+	$(LINK) $(LFLAGS) /out:kserv.dll /LIBPATH:$(LPPNGDIB) /LIBPATH:$(LPLIBPNG) /LIBPATH:$(LPZLIB) /DLL kserv.obj gdb.obj configs.obj kserv.res $(LIBS) $(D3DX9) kload.lib afsio.lib $(LIBSDLL)
 kserv.obj: kserv.cpp kserv.h kserv_addr.h kserv.rc dllinit.h afsio.h teaminfo.h
 
 lodmixer.lib: lodmixer.obj

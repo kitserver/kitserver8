@@ -28,8 +28,24 @@
 #include <hash_map>
 #include <wchar.h>
 
+#define CREATE_FLAGS 0
+
 #define NUM_TEAMS 258
 #define NUM_TEAMS_TOTAL 314
+
+#define NUM_SLOTS 256
+#define BIN_FONT_FIRST   2271 
+#define BIN_FONT_LAST    3294 
+#define BIN_NUMBER_FIRST 3295
+#define BIN_NUMBER_LAST  4318
+#define BIN_KIT_FIRST    7832
+#define BIN_KIT_LAST     8343
+#define XBIN_FONT_FIRST   8347 
+#define XBIN_FONT_LAST    9370 
+#define XBIN_NUMBER_FIRST 9371
+#define XBIN_NUMBER_LAST  10394
+#define XBIN_KIT_FIRST    10870
+#define XBIN_KIT_LAST     11381
 
 enum
 {
@@ -86,6 +102,8 @@ void kservReadEditData(LPCVOID data, DWORD size);
 void kservWriteEditData(LPCVOID data, DWORD size);
 void RelinkTeam(int teamIndex, TEAM_KIT_INFO* teamKitInfo=NULL);
 void UndoRelinks();
+bool kservGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize);
+bool OpenFileIfExists(const wchar_t* filename, HANDLE& handle, DWORD& size);
 
 
 /*******************/
@@ -174,6 +192,7 @@ HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
     // add callbacks
     addReadEditDataCallback(kservReadEditData);
     addWriteEditDataCallback(kservWriteEditData);
+    afsioAddCallback(kservGetFileInfo);
 
 	TRACE(L"Initialization complete.");
 	return D3D_OK;
@@ -330,13 +349,26 @@ void RelinkTeam(int teamIndex, TEAM_KIT_INFO* teamKitInfo)
         TRACE1N(L"teamKitInfo for %d already saved.", teamIndex);
     }
 
-    WORD slot = 0;
+    WORD slot = 0x5ef;
     teamKitInfo[teamIndex].ga.slot = slot;
     teamKitInfo[teamIndex].pa.slot = slot;
     teamKitInfo[teamIndex].gb.slot = slot;
     teamKitInfo[teamIndex].pb.slot = slot;
 
     LOG2N(L"team %d relinked to slot 0x%04x", teamIndex, slot); 
+
+    // extend cv06.img
+    afsioExtendSlots(6, XBIN_KIT_LAST+1);
+
+    // rewrite memory location that holds the number of kit-slots
+    DWORD* pNumSlots = (DWORD*)data[NUM_SLOTS_PTR];
+    if (pNumSlots) 
+    {
+        DWORD protection = 0;
+        DWORD newProtection = PAGE_READWRITE;
+        if (VirtualProtect(pNumSlots, 4, newProtection, &protection)) 
+            *pNumSlots = 0x0700;  
+    }
 }
 
 void UndoRelinks(TEAM_KIT_INFO* teamKitInfo)
@@ -378,5 +410,56 @@ void kservWriteEditData(LPCVOID buf, DWORD size)
     TEAM_KIT_INFO* teamKitInfo = (TEAM_KIT_INFO*)((BYTE*)buf 
             + 0x120 + data[TEAM_KIT_INFO_OFFSET] - 8);
     UndoRelinks(teamKitInfo);
+}
+
+/**
+ * AFSIO callback
+ */
+bool kservGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize)
+{
+    wchar_t* files[] = { L"font.bin", L"numbers.bin", L"kits.bin" };
+
+    if (afsId == 6)
+    {
+        wchar_t* file = L"";
+        if (XBIN_KIT_FIRST <= binId && binId <= XBIN_KIT_LAST) 
+            file = files[2];
+        else if (XBIN_NUMBER_FIRST <= binId && binId <= XBIN_NUMBER_LAST) 
+            file = files[1];
+        else if (XBIN_FONT_FIRST <= binId && binId <= XBIN_FONT_LAST) 
+            file = files[0];
+        else 
+            return false;
+
+        wchar_t filename[1024] = {0};
+        swprintf(filename,L"%sGDB\\uni\\Russia\\%s", 
+                getPesInfo()->gdbDir, file);
+        LOG1S(L"using BIN file: %s", filename);
+
+        return OpenFileIfExists(filename, hfile, fsize);
+    }
+    return false;
+}
+
+/**
+ * Simple file-check routine.
+ */
+bool OpenFileIfExists(const wchar_t* filename, HANDLE& handle, DWORD& size)
+{
+    TRACE1S(L"OpenFileIfExists:: %s", filename);
+    handle = CreateFile(filename,           // file to open
+                       GENERIC_READ,          // open for reading
+                       FILE_SHARE_READ,       // share for reading
+                       NULL,                  // default security
+                       OPEN_EXISTING,         // existing file only
+                       FILE_ATTRIBUTE_NORMAL | CREATE_FLAGS, // normal file
+                       NULL);                 // no attr. template
+
+    if (handle != INVALID_HANDLE_VALUE)
+    {
+        size = GetFileSize(handle,NULL);
+        return true;
+    }
+    return false;
 }
 
