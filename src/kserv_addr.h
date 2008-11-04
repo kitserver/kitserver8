@@ -56,7 +56,7 @@ DWORD dataArray[][DATALEN] = {
     {
         0x163f9ec, 0x163f9e8,
         0x163f9f0, 0x16a308,
-        0,
+        0x12a8d74,
     },
     // PES2009 v1.10
     {

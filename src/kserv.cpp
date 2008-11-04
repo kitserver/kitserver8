@@ -13,6 +13,7 @@
 #include "utf8.h"
 #include "commctrl.h"
 #include "afsio.h"
+#include "soft\zlib123-dll\include\zlib.h"
 
 #if _CPPLIB_VER < 503
 #define  __in
@@ -103,6 +104,7 @@ void kservWriteEditData(LPCVOID data, DWORD size);
 void RelinkTeam(int teamIndex, TEAM_KIT_INFO* teamKitInfo=NULL);
 void UndoRelinks();
 bool kservGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize);
+bool CreatePipeIfExists(const wchar_t* filename, HANDLE& handle, DWORD& size);
 bool OpenFileIfExists(const wchar_t* filename, HANDLE& handle, DWORD& size);
 
 
@@ -436,7 +438,101 @@ bool kservGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize)
                 getPesInfo()->gdbDir, file);
         LOG1S(L"using BIN file: %s", filename);
 
-        return OpenFileIfExists(filename, hfile, fsize);
+        return CreatePipeIfExists(filename, hfile, fsize);
+        //return OpenFileIfExists(filename, hfile, fsize);
+    }
+    return false;
+}
+
+/**
+ * Simple file-check routine.
+ */
+bool CreatePipeIfExists(const wchar_t* filename, HANDLE& handle, DWORD& size)
+{
+    TRACE1S(L"CreatePipeIfExists:: %s", filename);
+    HANDLE hfile = CreateFile(filename,           // file to open
+                       GENERIC_READ,          // open for reading
+                       FILE_SHARE_READ,       // share for reading
+                       NULL,                  // default security
+                       OPEN_EXISTING,         // existing file only
+                       FILE_ATTRIBUTE_NORMAL | CREATE_FLAGS, // normal file
+                       NULL);                 // no attr. template
+
+    if (hfile != INVALID_HANDLE_VALUE)
+    {
+        size = GetFileSize(hfile,NULL);
+        BYTE* buffer = (BYTE*)HeapAlloc(
+                GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+        if (!buffer) {
+            LOG(L"Unable to create a temporary buffer");
+            return false;
+        }
+        DWORD read = 0, written = 0;
+        if (!ReadFile(hfile, buffer, size, &read, 0))
+        {
+            LOG(L"Unable to read the BIN data");
+            CloseHandle(hfile);
+            HeapFree(GetProcessHeap(), 0, buffer);
+            return false;
+        }
+        CloseHandle(hfile);
+
+        // unpack
+        uLongf destLen = *(uLongf*)(buffer + 0x0c);
+        BYTE* dest = (BYTE*)HeapAlloc(GetProcessHeap(), 
+                HEAP_ZERO_MEMORY, destLen);
+        int retval = uncompress(dest,&destLen,buffer+0x10,size-0x10);
+        if (retval != Z_OK) {
+            LOG1N(L"BIN decompression failed. retval=%d", retval);
+            HeapFree(GetProcessHeap(), 0, buffer);
+            HeapFree(GetProcessHeap(), 0, dest);
+            return false;
+        }
+
+        // modify the unpacked bin-data
+        // ....
+        
+        // repack
+        uLongf newLen = destLen*2;
+        BYTE* repacked = (BYTE*)HeapAlloc(GetProcessHeap(),
+                HEAP_ZERO_MEMORY, newLen); // big buffer just in case;
+        retval = compress(repacked+0x10,&newLen,dest,destLen);
+        if (retval != Z_OK) {
+            LOG1N(L"BIN re-compression failed. retval=%d", retval);
+            HeapFree(GetProcessHeap(), 0, buffer);
+            HeapFree(GetProcessHeap(), 0, dest);
+            HeapFree(GetProcessHeap(), 0, repacked);
+            return false;
+        }
+        memcpy(repacked,"\x00\x01\x01WESYS",8);
+        memcpy(repacked+8,&newLen,sizeof(uLongf));
+        memcpy(repacked+12,&destLen,sizeof(uLongf));
+        size = newLen + 0x10;
+
+        // write the data to a pipe
+        HANDLE pipeRead, pipeWrite;
+        if (!CreatePipe(&pipeRead, &pipeWrite, NULL, size*2))
+        {
+            LOG(L"Unable to create a pipe");
+            HeapFree(GetProcessHeap(), 0, buffer);
+            HeapFree(GetProcessHeap(), 0, dest);
+            HeapFree(GetProcessHeap(), 0, repacked);
+            return false;
+        }
+        if (!WriteFile(pipeWrite, repacked, size, &written, 0))
+        {
+            LOG(L"Unable to write to a pipe");
+            HeapFree(GetProcessHeap(), 0, buffer);
+            HeapFree(GetProcessHeap(), 0, dest);
+            HeapFree(GetProcessHeap(), 0, repacked);
+            return false;
+        }
+        HeapFree(GetProcessHeap(), 0, buffer);
+        HeapFree(GetProcessHeap(), 0, dest);
+        HeapFree(GetProcessHeap(), 0, repacked);
+
+        handle = pipeRead;
+        return true;
     }
     return false;
 }
