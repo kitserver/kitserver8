@@ -129,6 +129,8 @@ int nextInitedKitsIdx = 0;
 GDB* _gdb;
 kserv_config_t _kserv_config;
 hash_map<int,TEAM_KIT_INFO> _orgTeamKitInfo;
+hash_map<WORD,WORD> _slotMap;
+hash_map<WORD,WORD> _reverseSlotMap;
 
 // FUNCTIONS
 HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
@@ -141,6 +143,8 @@ DWORD STDMETHODCALLTYPE kservInitNewKit(DWORD p1);
 DWORD kservAfterCreateTexture(DWORD p1);
 
 WORD GetTeamIdByIndex(int index);
+WORD GetTeamIndexBySlot(WORD slot);
+KitCollection* FindTeamInGDB(WORD teamIndex);
 char* GetTeamNameByIndex(int index);
 char* GetTeamNameById(WORD id);
 void kservAfterReadNamesCallPoint();
@@ -148,7 +152,8 @@ KEXPORT void kservAfterReadNames();
 void DumpSlotsInfo();
 void kservReadEditData(LPCVOID data, DWORD size);
 void kservWriteEditData(LPCVOID data, DWORD size);
-void RelinkTeam(int teamIndex, TEAM_KIT_INFO* teamKitInfo=NULL);
+void InitSlotMap(TEAM_KIT_INFO* teamKitInfo=NULL);
+void RelinkTeam(int teamIndex, WORD slot, TEAM_KIT_INFO* teamKitInfo=NULL);
 void UndoRelinks();
 bool kservGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize);
 bool CreatePipeForKitBin(DWORD binId, HANDLE& handle, DWORD& size);
@@ -361,8 +366,8 @@ KEXPORT void kservAfterReadNames()
     // dump slot information
     DumpSlotsInfo();
 
-    // re-link Russia
-    RelinkTeam(21);
+    // initialize kit slots
+    InitSlotMap();
 }
 
 void DumpSlotsInfo()
@@ -387,7 +392,55 @@ void DumpSlotsInfo()
     fclose(f);
 }
 
-void RelinkTeam(int teamIndex, TEAM_KIT_INFO* teamKitInfo)
+void InitSlotMap(TEAM_KIT_INFO* teamKitInfo)
+{
+    if (!teamKitInfo)
+        teamKitInfo = (TEAM_KIT_INFO*)(*(DWORD*)data[PLAYERS_DATA] 
+                + data[TEAM_KIT_INFO_OFFSET]);
+
+    _slotMap.clear();
+    _reverseSlotMap.clear();
+    _orgTeamKitInfo.clear();
+
+    // linked (or re-linked teams)
+    for (int i=0; i<NUM_TEAMS; i++)
+    {
+        short slot = (short)teamKitInfo[i].pa.slot;
+        if (slot >= 0)
+        {
+            _slotMap.insert(pair<WORD,WORD>((WORD)slot,i));
+            _reverseSlotMap.insert(pair<WORD,WORD>(i,(WORD)slot));
+        }
+    }
+    LOG2N(L"Normal slots taken: %d/%d", _slotMap.size(), NUM_SLOTS);
+
+    // GDB teams
+    WORD nextSlot = 0x5ef;
+    for (hash_map<WORD,KitCollection>::iterator git = _gdb->uni.begin();
+            git != _gdb->uni.end();
+            git++)
+    {
+        hash_map<WORD,WORD>::iterator rit = _reverseSlotMap.find(git->first);
+        if (rit == _reverseSlotMap.end())
+            RelinkTeam(git->first, nextSlot++, teamKitInfo);
+    }
+    LOG2N(L"Total slots taken: %d/%d", _slotMap.size(), NUM_SLOTS*2);
+
+    // extend cv06.img
+    afsioExtendSlots(6, XBIN_KIT_LAST+1);
+
+    // rewrite memory location that holds the number of kit-slots
+    DWORD* pNumSlots = (DWORD*)data[NUM_SLOTS_PTR];
+    if (pNumSlots) 
+    {
+        DWORD protection = 0;
+        DWORD newProtection = PAGE_READWRITE;
+        if (VirtualProtect(pNumSlots, 4, newProtection, &protection)) 
+            *pNumSlots = 0x0700;  
+    }
+}
+
+void RelinkTeam(int teamIndex, WORD slot, TEAM_KIT_INFO* teamKitInfo)
 {
     if (!teamKitInfo)
         teamKitInfo = (TEAM_KIT_INFO*)(*(DWORD*)data[PLAYERS_DATA] 
@@ -407,26 +460,15 @@ void RelinkTeam(int teamIndex, TEAM_KIT_INFO* teamKitInfo)
         TRACE1N(L"teamKitInfo for %d already saved.", teamIndex);
     }
 
-    WORD slot = 0x5ef;
+    _slotMap.insert(pair<WORD,WORD>(slot,teamIndex));
+    _reverseSlotMap.insert(pair<WORD,WORD>(teamIndex,slot));
+
     teamKitInfo[teamIndex].ga.slot = slot;
     teamKitInfo[teamIndex].pa.slot = slot;
     teamKitInfo[teamIndex].gb.slot = slot;
     teamKitInfo[teamIndex].pb.slot = slot;
 
     LOG2N(L"team %d relinked to slot 0x%04x", teamIndex, slot); 
-
-    // extend cv06.img
-    afsioExtendSlots(6, XBIN_KIT_LAST+1);
-
-    // rewrite memory location that holds the number of kit-slots
-    DWORD* pNumSlots = (DWORD*)data[NUM_SLOTS_PTR];
-    if (pNumSlots) 
-    {
-        DWORD protection = 0;
-        DWORD newProtection = PAGE_READWRITE;
-        if (VirtualProtect(pNumSlots, 4, newProtection, &protection)) 
-            *pNumSlots = 0x0700;  
-    }
 }
 
 void UndoRelinks(TEAM_KIT_INFO* teamKitInfo)
@@ -452,10 +494,10 @@ void kservReadEditData(LPCVOID buf, DWORD size)
     // dump slot information again
     DumpSlotsInfo();
 
-    // re-link Russia
+    // initialize kit slots
     TEAM_KIT_INFO* teamKitInfo = (TEAM_KIT_INFO*)((BYTE*)buf 
             + 0x120 + data[TEAM_KIT_INFO_OFFSET] - 8);
-    RelinkTeam(21, teamKitInfo);
+    InitSlotMap(teamKitInfo);
 }
 
 /**
@@ -477,7 +519,16 @@ bool kservGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize)
 {
     if (afsId == 6)
     {
-        if (XBIN_KIT_FIRST <= binId && binId <= XBIN_KIT_LAST) 
+        // regular slots
+        if (BIN_KIT_FIRST <= binId && binId <= BIN_KIT_LAST) 
+            return CreatePipeForKitBin(binId, hfile, fsize);
+        else if (BIN_NUMBER_FIRST <= binId && binId <= BIN_NUMBER_LAST) 
+            return CreatePipeForNumbersBin(binId, hfile, fsize);
+        else if (BIN_FONT_FIRST <= binId && binId <= BIN_FONT_LAST) 
+            return CreatePipeForFontBin(binId, hfile, fsize);
+
+        // x-slots
+        else if (XBIN_KIT_FIRST <= binId && binId <= XBIN_KIT_LAST) 
             return CreatePipeForKitBin(binId, hfile, fsize);
         else if (XBIN_NUMBER_FIRST <= binId && binId <= XBIN_NUMBER_LAST) 
             return CreatePipeForNumbersBin(binId, hfile, fsize);
@@ -539,11 +590,39 @@ void DumpData(void* data, size_t size)
     count++;
 }
 
+WORD GetTeamIndexBySlot(WORD slot)
+{
+    hash_map<WORD,WORD>::iterator sit = _slotMap.find(slot);
+    if (sit != _slotMap.end())
+        return sit->second;
+    return 0xffff;
+}
+
+bool FindTeamInGDB(WORD teamIndex, KitCollection*& kcol)
+{
+    hash_map<WORD,KitCollection>::iterator it = _gdb->uni.find(teamIndex);
+    if (it != _gdb->uni.end())
+    {
+        kcol = &it->second;
+        return true;
+    }
+    kcol = &_gdb->dummyHome;
+    return false;
+}
+
 /**
  * Create a pipe and write a dynamically created BIN into it.
  */
 bool CreatePipeForKitBin(DWORD binId, HANDLE& handle, DWORD& size)
 {
+    // first step: determine the team, and see if we have
+    // this team in the GDB
+    WORD slot = (binId - BIN_KIT_FIRST) >> 1;
+    WORD teamIndex = GetTeamIndexBySlot(slot);
+    KitCollection* kcol;
+    if (!FindTeamInGDB(teamIndex, kcol) && binId <= BIN_KIT_LAST)
+        return false; // not in GDB: rely on afs kit
+
     // create the unpacked bin-data in memory
     kserv_buffer_manager_t bm;
     DWORD texSize = sizeof(TEXTURE_ENTRY_HEADER) + 256*sizeof(PALETTE_ENTRY)
@@ -592,7 +671,8 @@ bool CreatePipeForKitBin(DWORD binId, HANDLE& handle, DWORD& size)
     for (int i=0; i<2; i++)
     {
         wstring filename(getPesInfo()->gdbDir);
-        filename += L"GDB\\uni\\Russia\\"+kitFolder[i+gkShift]+L"\\kit.png";
+        filename += L"GDB\\uni\\" + kcol->foldername 
+                + L"\\"+kitFolder[i+gkShift]+L"\\kit.png";
         files[i] = filename;
     }
     ReplaceTexturesInBin(bm._unpacked, files, 2);
@@ -633,6 +713,14 @@ bool CreatePipeForKitBin(DWORD binId, HANDLE& handle, DWORD& size)
  */
 bool CreatePipeForFontBin(DWORD binId, HANDLE& handle, DWORD& size)
 {
+    // first step: determine the team, and see if we have
+    // this team in the GDB
+    WORD slot = (binId - BIN_FONT_FIRST) >> 2;
+    WORD teamIndex = GetTeamIndexBySlot(slot);
+    KitCollection* kcol;
+    if (!FindTeamInGDB(teamIndex, kcol) && binId <= BIN_FONT_LAST)
+        return false; // not in GDB: rely on afs kit
+
     // create the unpacked bin-data in memory
     kserv_buffer_manager_t bm;
     DWORD texSize = sizeof(TEXTURE_ENTRY_HEADER) + 256*sizeof(PALETTE_ENTRY)
@@ -671,19 +759,20 @@ bool CreatePipeForFontBin(DWORD binId, HANDLE& handle, DWORD& size)
     te->palette[0].a = 0xff;
 
     wstring filename(getPesInfo()->gdbDir);
+    filename += L"GDB\\uni\\"+kcol->foldername;
     switch (GetBinType(binId))
     {
         case BIN_FONT_GA:
-            filename += L"GDB\\uni\\Russia\\ga\\font.png";
+            filename += L"\\ga\\font.png";
             break;
         case BIN_FONT_GB:
-            filename += L"GDB\\uni\\Russia\\gb\\font.png";
+            filename += L"\\gb\\font.png";
             break;
         case BIN_FONT_PA:
-            filename += L"GDB\\uni\\Russia\\pa\\font.png";
+            filename += L"\\pa\\font.png";
             break;
         case BIN_FONT_PB:
-            filename += L"GDB\\uni\\Russia\\pb\\font.png";
+            filename += L"\\pb\\font.png";
             break;
     }
     wstring files[1];
@@ -727,6 +816,14 @@ bool CreatePipeForFontBin(DWORD binId, HANDLE& handle, DWORD& size)
  */
 bool CreatePipeForNumbersBin(DWORD binId, HANDLE& handle, DWORD& size)
 {
+    // first step: determine the team, and see if we have
+    // this team in the GDB
+    WORD slot = (binId - BIN_NUMBER_FIRST) >> 2;
+    WORD teamIndex = GetTeamIndexBySlot(slot);
+    KitCollection* kcol;
+    if (!FindTeamInGDB(teamIndex, kcol) && binId <= BIN_NUMBER_LAST)
+        return false; // not in GDB: rely on afs kit
+
     // create the unpacked bin-data in memory
     kserv_buffer_manager_t bm;
     DWORD texSize = sizeof(TEXTURE_ENTRY_HEADER) + 256*sizeof(PALETTE_ENTRY)
@@ -791,19 +888,20 @@ bool CreatePipeForNumbersBin(DWORD binId, HANDLE& handle, DWORD& size)
     }
 
     wstring dirname(getPesInfo()->gdbDir);
+    dirname += L"GDB\\uni\\"+kcol->foldername;
     switch (GetBinType(binId))
     {
         case BIN_NUMS_GA:
-            dirname += L"GDB\\uni\\Russia\\ga\\";
+            dirname += L"\\ga\\";
             break;
         case BIN_NUMS_GB:
-            dirname += L"GDB\\uni\\Russia\\gb\\";
+            dirname += L"\\gb\\";
             break;
         case BIN_NUMS_PA:
-            dirname += L"GDB\\uni\\Russia\\pa\\";
+            dirname += L"\\pa\\";
             break;
         case BIN_NUMS_PB:
-            dirname += L"GDB\\uni\\Russia\\pb\\";
+            dirname += L"\\pb\\";
             break;
 
     }
