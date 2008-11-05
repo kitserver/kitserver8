@@ -342,7 +342,7 @@ void kservAfterReadNamesCallPoint()
         push edx
         push esi
         push edi
-        mov [eax+0x2884], ecx  // execute replaced code
+        mov [eax+0x2884], 0x144  // execute replaced code
         call kservAfterReadNames
         pop edi
         pop esi
@@ -580,9 +580,9 @@ bool CreatePipeForKitBin(DWORD binId, HANDLE& handle, DWORD& size)
         te->header.paletteOffset = sizeof(TEXTURE_ENTRY_HEADER);
         te->header.dataOffset = sizeof(TEXTURE_ENTRY_HEADER) 
             + 256*sizeof(PALETTE_ENTRY);
-        te->palette[0].r = 0x88;
-        te->palette[0].g = 0x88;
-        te->palette[0].b = 0x88;
+        te->palette[0].r = 0x88; // set 1st color to grey.
+        te->palette[0].g = 0x88; // as an indicator in-game that
+        te->palette[0].b = 0x88; // the kit didn't load from GDB
         te->palette[0].a = 0xff;
     }
 
@@ -665,9 +665,9 @@ bool CreatePipeForFontBin(DWORD binId, HANDLE& handle, DWORD& size)
     te->header.paletteOffset = sizeof(TEXTURE_ENTRY_HEADER);
     te->header.dataOffset = sizeof(TEXTURE_ENTRY_HEADER) 
         + 256*sizeof(PALETTE_ENTRY);
-    te->palette[0].r = 0xa8;
-    te->palette[0].g = 0xa8;
-    te->palette[0].b = 0xa8;
+    te->palette[0].r = 0xa8; // set 1st color to light grey.
+    te->palette[0].g = 0xa8; // as an indicator in-game that
+    te->palette[0].b = 0xa8; // the font didn't load from GDB
     te->palette[0].a = 0xff;
 
     wstring filename(getPesInfo()->gdbDir);
@@ -766,9 +766,9 @@ bool CreatePipeForNumbersBin(DWORD binId, HANDLE& handle, DWORD& size)
     te->header.paletteOffset = sizeof(TEXTURE_ENTRY_HEADER);
     te->header.dataOffset = sizeof(TEXTURE_ENTRY_HEADER) 
         + 256*sizeof(PALETTE_ENTRY);
-    te->palette[0].r = 0xc8;
-    te->palette[0].g = 0xc8;
-    te->palette[0].b = 0xc8;
+    te->palette[0].r = 0xc8; // set 1st color to light grey.
+    te->palette[0].g = 0xc8; // as an indicator in-game that
+    te->palette[0].b = 0xc8; // the numbers didn't load from GDB
     te->palette[0].a = 0xff;
     for (int i=1; i<4; i++)
     {
@@ -784,9 +784,9 @@ bool CreatePipeForNumbersBin(DWORD binId, HANDLE& handle, DWORD& size)
         te->header.paletteOffset = sizeof(TEXTURE_ENTRY_HEADER);
         te->header.dataOffset = sizeof(TEXTURE_ENTRY_HEADER) 
             + 256*sizeof(PALETTE_ENTRY);
-        te->palette[0].r = 0xc8;
-        te->palette[0].g = 0xc8;
-        te->palette[0].b = 0xc8;
+        te->palette[0].r = 0xc8; // set 1st color to light grey.
+        te->palette[0].g = 0xc8; // as an indicator in-game that
+        te->palette[0].b = 0xc8; // the numbers didn't load from GDB
         te->palette[0].a = 0xff;
     }
 

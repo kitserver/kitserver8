@@ -54,7 +54,7 @@ DWORD dataArray[][DATALEN] = {
 	NODATAADDR
     // PES2009
     {
-        0x163f9ec, 0x163f9e8,
+        0x163f9ec, 0x163f9e4,
         0x163f9f0, 0x16a308,
         0x12a8d74,
     },
