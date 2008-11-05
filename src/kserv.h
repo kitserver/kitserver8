@@ -12,11 +12,6 @@ typedef DWORD (*INIT_NEW_KIT)(DWORD);
 KEXPORT DWORD hookVtableFunction(DWORD vtableAddr, DWORD offset, void* func);
 
 
-typedef struct _PNG_CHUNK_HEADER {
-    DWORD dwSize;
-    DWORD dwName;
-} PNG_CHUNK_HEADER;
-
 typedef struct _PES_TEXTURE {
     DWORD* vtable;	// == 0xffab80 for PES2009
 	BYTE unknown1[8];
@@ -66,4 +61,37 @@ typedef struct _TEAM_NAME {
     WORD teamId2;
     BYTE unknown2[8];
 } TEAM_NAME; // size = 0x9c
+
+typedef struct _PNG_CHUNK_HEADER {
+    DWORD dwSize;
+    DWORD dwName;
+} PNG_CHUNK_HEADER;
+
+typedef struct _TEXTURE_ENTRY_HEADER
+{
+    BYTE sig[4]; // "WE00"
+    BYTE unknown1; // 0
+    BYTE unknown2; // 0
+    BYTE unknown3; // 03
+    BYTE bpp;
+    WORD width;
+    WORD height;
+    WORD paletteOffset;
+    WORD dataOffset;
+} TEXTURE_ENTRY_HEADER;
+
+typedef struct _PALETTE_ENTRY
+{
+    BYTE b;
+    BYTE g;
+    BYTE r;
+    BYTE a;
+} PALETTE_ENTRY;
+
+typedef struct _TEXTURE_ENTRY
+{
+    TEXTURE_ENTRY_HEADER header;
+    PALETTE_ENTRY palette[256];
+    BYTE data[1];
+} TEXTURE_ENTRY;
 

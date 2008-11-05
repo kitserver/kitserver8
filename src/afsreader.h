@@ -49,7 +49,7 @@ typedef struct _PACKED_BIN
 typedef struct _UNPACKED_BIN_HEADER
 {
     DWORD numEntries;
-    DWORD headerSizeInDwords;
+    DWORD unknown1; // often has value of 8
 } UNPACKED_BIN_HEADER;
 
 typedef struct _ENTRY_INFO 

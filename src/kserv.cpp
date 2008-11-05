@@ -13,6 +13,7 @@
 #include "utf8.h"
 #include "commctrl.h"
 #include "afsio.h"
+#include "afsreader.h"
 #include "soft\zlib123-dll\include\zlib.h"
 
 #if _CPPLIB_VER < 503
@@ -30,6 +31,9 @@
 #include <wchar.h>
 
 #define CREATE_FLAGS 0
+#define SWAPBYTES(dw) \
+    ((dw<<24 & 0xff000000) | (dw<<8  & 0x00ff0000) | \
+    (dw>>8  & 0x0000ff00) | (dw>>24 & 0x000000ff))
 
 #define NUM_TEAMS 258
 #define NUM_TEAMS_TOTAL 314
@@ -47,6 +51,9 @@
 #define XBIN_NUMBER_LAST  10394
 #define XBIN_KIT_FIRST    10870
 #define XBIN_KIT_LAST     11381
+
+HINSTANCE hInst = NULL;
+KMOD k_kserv = {MODID, NAMELONG, NAMESHORT, DEFAULT_DEBUG};
 
 enum
 {
@@ -69,10 +76,50 @@ public:
     bool _use_description;
 };
 
-// VARIABLES
-HINSTANCE hInst = NULL;
-KMOD k_kserv = {MODID, NAMELONG, NAMESHORT, DEFAULT_DEBUG};
+/**
+ * Utility class to keep track of buffers
+ * and memory allocations/deallocations
+ */
+class kserv_buffer_manager_t
+{
+public:
+    kserv_buffer_manager_t() : _unpacked(NULL), _packed(NULL) {}
+    ~kserv_buffer_manager_t() 
+    {
+        if (_unpacked) { HeapFree(GetProcessHeap(),0,_unpacked); }
+        if (_packed) { HeapFree(GetProcessHeap(),0,_packed); }
+        for (list<BYTE*>::iterator bit = _buffers.begin();
+                bit != _buffers.end();
+                bit++)
+            HeapFree(GetProcessHeap(),0,*bit);
+        LOG(L"buffers deallocated.");
+    }
+    UNPACKED_BIN* new_unpacked(size_t size)
+    {
+        _unpacked = (UNPACKED_BIN*)HeapAlloc(GetProcessHeap(),
+                HEAP_ZERO_MEMORY, size);
+        return _unpacked;
+    }
+    PACKED_BIN* new_packed(size_t size)
+    {
+        _packed = (PACKED_BIN*)HeapAlloc(GetProcessHeap(),
+                HEAP_ZERO_MEMORY, size);
+        return _packed;
+    }
+    BYTE* new_buffer(size_t size)
+    {
+        BYTE* _buffer = (BYTE*)HeapAlloc(GetProcessHeap(),
+                HEAP_ZERO_MEMORY, size);
+        if (_buffer) _buffers.push_back(_buffer);
+        return _buffer;
+    }
 
+    UNPACKED_BIN* _unpacked;
+    PACKED_BIN* _packed;
+    list<BYTE*> _buffers;
+};
+
+// VARIABLES
 INIT_NEW_KIT origInitNewKit = NULL;
 
 #define NUM_INITED_KITS 10
@@ -104,9 +151,18 @@ void kservWriteEditData(LPCVOID data, DWORD size);
 void RelinkTeam(int teamIndex, TEAM_KIT_INFO* teamKitInfo=NULL);
 void UndoRelinks();
 bool kservGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize);
-bool CreatePipeIfExists(const wchar_t* filename, HANDLE& handle, DWORD& size);
-bool OpenFileIfExists(const wchar_t* filename, HANDLE& handle, DWORD& size);
+bool CreatePipeForKitBin(DWORD binId, HANDLE& handle, DWORD& size);
+bool CreatePipeForFontBin(DWORD binId, HANDLE& handle, DWORD& size);
+bool CreatePipeForNumbersBin(DWORD binId, HANDLE& handle, DWORD& size);
+int GetBinType(DWORD id);
 
+DWORD LoadPNGTexture(BITMAPINFO** tex, const wchar_t* filename);
+void ApplyAlphaChunk(RGBQUAD* palette, BYTE* memblk, DWORD size);
+static int read_file_to_mem(const wchar_t *fn,unsigned char **ppfiledata, int *pfilesize);
+void ApplyDIBTexture(TEXTURE_ENTRY* tex, BITMAPINFO* bitmap);
+void FreePNGTexture(BITMAPINFO* bitmap);
+void ReplaceTexturesInBin(UNPACKED_BIN* bin, wstring files[], size_t n);
+void DumpData(void* data, size_t size);
 
 /*******************/
 /* DLL Entry Point */
@@ -419,143 +475,576 @@ void kservWriteEditData(LPCVOID buf, DWORD size)
  */
 bool kservGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize)
 {
-    wchar_t* files[] = { L"font.bin", L"numbers.bin", L"kits.bin" };
-
     if (afsId == 6)
     {
-        wchar_t* file = L"";
         if (XBIN_KIT_FIRST <= binId && binId <= XBIN_KIT_LAST) 
-            file = files[2];
+            return CreatePipeForKitBin(binId, hfile, fsize);
         else if (XBIN_NUMBER_FIRST <= binId && binId <= XBIN_NUMBER_LAST) 
-            file = files[1];
+            return CreatePipeForNumbersBin(binId, hfile, fsize);
         else if (XBIN_FONT_FIRST <= binId && binId <= XBIN_FONT_LAST) 
-            file = files[0];
-        else 
-            return false;
-
-        wchar_t filename[1024] = {0};
-        swprintf(filename,L"%sGDB\\uni\\Russia\\%s", 
-                getPesInfo()->gdbDir, file);
-        LOG1S(L"using BIN file: %s", filename);
-
-        return CreatePipeIfExists(filename, hfile, fsize);
-        //return OpenFileIfExists(filename, hfile, fsize);
+            return CreatePipeForFontBin(binId, hfile, fsize);
     }
     return false;
 }
 
-/**
- * Simple file-check routine.
- */
-bool CreatePipeIfExists(const wchar_t* filename, HANDLE& handle, DWORD& size)
+int GetBinType(DWORD id)
 {
-    TRACE1S(L"CreatePipeIfExists:: %s", filename);
-    HANDLE hfile = CreateFile(filename,           // file to open
-                       GENERIC_READ,          // open for reading
-                       FILE_SHARE_READ,       // share for reading
-                       NULL,                  // default security
-                       OPEN_EXISTING,         // existing file only
-                       FILE_ATTRIBUTE_NORMAL | CREATE_FLAGS, // normal file
-                       NULL);                 // no attr. template
-
-    if (hfile != INVALID_HANDLE_VALUE)
+    // normal slots
+    if (BIN_KIT_FIRST <= id && id <= BIN_KIT_LAST)
     {
-        size = GetFileSize(hfile,NULL);
-        BYTE* buffer = (BYTE*)HeapAlloc(
-                GetProcessHeap(), HEAP_ZERO_MEMORY, size);
-        if (!buffer) {
-            LOG(L"Unable to create a temporary buffer");
-            return false;
-        }
-        DWORD read = 0, written = 0;
-        if (!ReadFile(hfile, buffer, size, &read, 0))
-        {
-            LOG(L"Unable to read the BIN data");
-            CloseHandle(hfile);
-            HeapFree(GetProcessHeap(), 0, buffer);
-            return false;
-        }
-        CloseHandle(hfile);
-
-        // unpack
-        uLongf destLen = *(uLongf*)(buffer + 0x0c);
-        BYTE* dest = (BYTE*)HeapAlloc(GetProcessHeap(), 
-                HEAP_ZERO_MEMORY, destLen);
-        int retval = uncompress(dest,&destLen,buffer+0x10,size-0x10);
-        if (retval != Z_OK) {
-            LOG1N(L"BIN decompression failed. retval=%d", retval);
-            HeapFree(GetProcessHeap(), 0, buffer);
-            HeapFree(GetProcessHeap(), 0, dest);
-            return false;
-        }
-
-        // modify the unpacked bin-data
-        // ....
-        
-        // repack
-        uLongf newLen = destLen*2;
-        BYTE* repacked = (BYTE*)HeapAlloc(GetProcessHeap(),
-                HEAP_ZERO_MEMORY, newLen); // big buffer just in case;
-        retval = compress(repacked+0x10,&newLen,dest,destLen);
-        if (retval != Z_OK) {
-            LOG1N(L"BIN re-compression failed. retval=%d", retval);
-            HeapFree(GetProcessHeap(), 0, buffer);
-            HeapFree(GetProcessHeap(), 0, dest);
-            HeapFree(GetProcessHeap(), 0, repacked);
-            return false;
-        }
-        memcpy(repacked,"\x00\x01\x01WESYS",8);
-        memcpy(repacked+8,&newLen,sizeof(uLongf));
-        memcpy(repacked+12,&destLen,sizeof(uLongf));
-        size = newLen + 0x10;
-
-        // write the data to a pipe
-        HANDLE pipeRead, pipeWrite;
-        if (!CreatePipe(&pipeRead, &pipeWrite, NULL, size*2))
-        {
-            LOG(L"Unable to create a pipe");
-            HeapFree(GetProcessHeap(), 0, buffer);
-            HeapFree(GetProcessHeap(), 0, dest);
-            HeapFree(GetProcessHeap(), 0, repacked);
-            return false;
-        }
-        if (!WriteFile(pipeWrite, repacked, size, &written, 0))
-        {
-            LOG(L"Unable to write to a pipe");
-            HeapFree(GetProcessHeap(), 0, buffer);
-            HeapFree(GetProcessHeap(), 0, dest);
-            HeapFree(GetProcessHeap(), 0, repacked);
-            return false;
-        }
-        HeapFree(GetProcessHeap(), 0, buffer);
-        HeapFree(GetProcessHeap(), 0, dest);
-        HeapFree(GetProcessHeap(), 0, repacked);
-
-        handle = pipeRead;
-        return true;
+        return BIN_KIT_GK + ((id - BIN_KIT_FIRST)%2);
     }
-    return false;
+    else if (BIN_FONT_FIRST <= id && id <= BIN_FONT_LAST)
+    {
+        return BIN_FONT_GA + ((id - BIN_FONT_FIRST)%4);
+    }
+    else if (BIN_NUMBER_FIRST <= id && id <= BIN_NUMBER_LAST)
+    {
+        return BIN_NUMS_GA + ((id - BIN_NUMBER_FIRST)%4);
+    }
+
+    // x-slots
+    else if (XBIN_KIT_FIRST <= id && id <= XBIN_KIT_LAST)
+    {
+        return BIN_KIT_GK + ((id - XBIN_KIT_FIRST)%2);
+    }
+    else if (XBIN_FONT_FIRST <= id && id <= XBIN_FONT_LAST)
+    {
+        return BIN_FONT_GA + ((id - XBIN_FONT_FIRST)%4);
+    }
+    else if (XBIN_NUMBER_FIRST <= id && id <= XBIN_NUMBER_LAST)
+    {
+        return BIN_NUMS_GA + ((id - XBIN_NUMBER_FIRST)%4);
+    }
+
+    return -1;
+}
+
+void DumpData(void* data, size_t size)
+{
+    static int count = 0;
+    char filename[256] = {0};
+    sprintf(filename, "kitserver/dump%03d.bin", count);
+    FILE* f = fopen(filename,"wb");
+    if (f) 
+    {
+        fwrite(data, size, 1, f);
+        fclose(f);
+        LOG1N(L"Dumped file (count=%d)",count);
+    }
+    else
+    {
+        LOG2N(L"ERROR: unable to dump file (count=%d). Error code = %d",count, errno);
+    }
+    count++;
 }
 
 /**
- * Simple file-check routine.
+ * Create a pipe and write a dynamically created BIN into it.
  */
-bool OpenFileIfExists(const wchar_t* filename, HANDLE& handle, DWORD& size)
+bool CreatePipeForKitBin(DWORD binId, HANDLE& handle, DWORD& size)
 {
-    TRACE1S(L"OpenFileIfExists:: %s", filename);
-    handle = CreateFile(filename,           // file to open
-                       GENERIC_READ,          // open for reading
-                       FILE_SHARE_READ,       // share for reading
-                       NULL,                  // default security
-                       OPEN_EXISTING,         // existing file only
-                       FILE_ATTRIBUTE_NORMAL | CREATE_FLAGS, // normal file
-                       NULL);                 // no attr. template
-
-    if (handle != INVALID_HANDLE_VALUE)
+    // create the unpacked bin-data in memory
+    kserv_buffer_manager_t bm;
+    DWORD texSize = sizeof(TEXTURE_ENTRY_HEADER) + 256*sizeof(PALETTE_ENTRY)
+        + 1024*512; /*data*/ 
+    uLongf unpackedSize = sizeof(UNPACKED_BIN_HEADER) + sizeof(ENTRY_INFO)*2
+        + 2*texSize;
+    bm.new_unpacked(unpackedSize);
+    if (!bm._unpacked) 
     {
-        size = GetFileSize(handle,NULL);
-        return true;
+        LOG1N(L"Unable to allocate buffer for binId=%d", binId);
+        return false;
     }
-    return false;
+
+    // initialize the bin structure
+    bm._unpacked->header.numEntries = 2;
+    bm._unpacked->header.unknown1 = 8;
+    bm._unpacked->entryInfo[0].offset = 0x20;
+    bm._unpacked->entryInfo[0].size = texSize;
+    bm._unpacked->entryInfo[0].indexOffset = 0xffffffff;
+    bm._unpacked->entryInfo[1].offset = 0x20 + texSize;
+    bm._unpacked->entryInfo[1].size = texSize;
+    bm._unpacked->entryInfo[1].indexOffset = 0xffffffff;
+    for (int i=0; i<2; i++)
+    {
+        TEXTURE_ENTRY* te = (TEXTURE_ENTRY*)((BYTE*)bm._unpacked 
+                + bm._unpacked->entryInfo[i].offset);
+        memcpy(&(te->header.sig),"WE00",4);
+        te->header.unknown1 = 0;
+        te->header.unknown2 = 0;
+        te->header.unknown3 = 3;
+        te->header.bpp = 8;
+        te->header.width = 1024;
+        te->header.height = 512;
+        te->header.paletteOffset = sizeof(TEXTURE_ENTRY_HEADER);
+        te->header.dataOffset = sizeof(TEXTURE_ENTRY_HEADER) 
+            + 256*sizeof(PALETTE_ENTRY);
+        te->palette[0].r = 0x88;
+        te->palette[0].g = 0x88;
+        te->palette[0].b = 0x88;
+        te->palette[0].a = 0xff;
+    }
+
+    int gkShift = (binId % 2)*2;
+    wstring files[2];
+    wstring kitFolder[] = {L"ga",L"gb",L"pa",L"pb"};
+    for (int i=0; i<2; i++)
+    {
+        wstring filename(getPesInfo()->gdbDir);
+        filename += L"GDB\\uni\\Russia\\"+kitFolder[i+gkShift]+L"\\kit.png";
+        files[i] = filename;
+    }
+    ReplaceTexturesInBin(bm._unpacked, files, 2);
+    //DumpData(bm._unpacked, unpackedSize);
+    
+    // pack
+    uLongf packedSize = unpackedSize*2; // big buffer just in case;
+    bm.new_packed(packedSize);
+    int retval = compress((BYTE*)bm._packed->data,&packedSize,(BYTE*)bm._unpacked,unpackedSize);
+    if (retval != Z_OK) {
+        LOG1N(L"BIN re-compression failed. retval=%d", retval);
+        return false;
+    }
+    memcpy(bm._packed->header.sig,"\x00\x01\x01WESYS",8);
+    bm._packed->header.sizePacked = packedSize;
+    bm._packed->header.sizeUnpacked = unpackedSize;
+    size = packedSize + 0x10;
+
+    // write the data to a pipe
+    HANDLE pipeRead, pipeWrite;
+    if (!CreatePipe(&pipeRead, &pipeWrite, NULL, size*2))
+    {
+        LOG(L"Unable to create a pipe");
+        return false;
+    }
+    DWORD written = 0;
+    if (!WriteFile(pipeWrite, bm._packed, size, &written, 0))
+    {
+        LOG(L"Unable to write to a pipe");
+        return false;
+    }
+    handle = pipeRead;
+    return true;
+}
+
+/**
+ * Create a pipe and write a dynamically created BIN into it.
+ */
+bool CreatePipeForFontBin(DWORD binId, HANDLE& handle, DWORD& size)
+{
+    // create the unpacked bin-data in memory
+    kserv_buffer_manager_t bm;
+    DWORD texSize = sizeof(TEXTURE_ENTRY_HEADER) + 256*sizeof(PALETTE_ENTRY)
+        + 256*64; /*data*/ 
+    uLongf unpackedSize = sizeof(UNPACKED_BIN_HEADER) + sizeof(ENTRY_INFO)*2
+        + texSize; // we only actually need 1 ENTRY_INFO, but let's have 2 
+                   // for nice alignment (header-size then remains 8 DWORDs)
+    bm.new_unpacked(unpackedSize);
+    if (!bm._unpacked) 
+    {
+        LOG1N(L"Unable to allocate buffer for binId=%d", binId);
+        return false;
+    }
+
+    // initialize the bin structure
+    bm._unpacked->header.numEntries = 1;
+    bm._unpacked->header.unknown1 = 8;
+    bm._unpacked->entryInfo[0].offset = 0x20;
+    bm._unpacked->entryInfo[0].size = texSize;
+    bm._unpacked->entryInfo[0].indexOffset = 0xffffffff;
+    TEXTURE_ENTRY* te = (TEXTURE_ENTRY*)((BYTE*)bm._unpacked 
+            + bm._unpacked->entryInfo[0].offset);
+    memcpy(&(te->header.sig),"WE00",4);
+    te->header.unknown1 = 0;
+    te->header.unknown2 = 0;
+    te->header.unknown3 = 3;
+    te->header.bpp = 8;
+    te->header.width = 256;
+    te->header.height = 64;
+    te->header.paletteOffset = sizeof(TEXTURE_ENTRY_HEADER);
+    te->header.dataOffset = sizeof(TEXTURE_ENTRY_HEADER) 
+        + 256*sizeof(PALETTE_ENTRY);
+    te->palette[0].r = 0xa8;
+    te->palette[0].g = 0xa8;
+    te->palette[0].b = 0xa8;
+    te->palette[0].a = 0xff;
+
+    wstring filename(getPesInfo()->gdbDir);
+    switch (GetBinType(binId))
+    {
+        case BIN_FONT_GA:
+            filename += L"GDB\\uni\\Russia\\ga\\font.png";
+            break;
+        case BIN_FONT_GB:
+            filename += L"GDB\\uni\\Russia\\gb\\font.png";
+            break;
+        case BIN_FONT_PA:
+            filename += L"GDB\\uni\\Russia\\pa\\font.png";
+            break;
+        case BIN_FONT_PB:
+            filename += L"GDB\\uni\\Russia\\pb\\font.png";
+            break;
+    }
+    wstring files[1];
+    files[0] = filename;
+
+    ReplaceTexturesInBin(bm._unpacked, files, 1);
+    
+    // pack
+    uLongf packedSize = unpackedSize*2; // big buffer just in case;
+    bm.new_packed(packedSize);
+    int retval = compress((BYTE*)bm._packed->data,&packedSize,(BYTE*)bm._unpacked,unpackedSize);
+    if (retval != Z_OK) {
+        LOG1N(L"BIN re-compression failed. retval=%d", retval);
+        return false;
+    }
+    memcpy(bm._packed->header.sig,"\x00\x01\x01WESYS",8);
+    bm._packed->header.sizePacked = packedSize;
+    bm._packed->header.sizeUnpacked = unpackedSize;
+    size = packedSize + 0x10;
+    //DumpData(bm._packed, size);
+
+    // write the data to a pipe
+    HANDLE pipeRead, pipeWrite;
+    if (!CreatePipe(&pipeRead, &pipeWrite, NULL, size*2))
+    {
+        LOG(L"Unable to create a pipe");
+        return false;
+    }
+    DWORD written = 0;
+    if (!WriteFile(pipeWrite, bm._packed, size, &written, 0))
+    {
+        LOG(L"Unable to write to a pipe");
+        return false;
+    }
+    handle = pipeRead;
+    return true;
+}
+
+/**
+ * Create a pipe and write a dynamically created BIN into it.
+ */
+bool CreatePipeForNumbersBin(DWORD binId, HANDLE& handle, DWORD& size)
+{
+    // create the unpacked bin-data in memory
+    kserv_buffer_manager_t bm;
+    DWORD texSize = sizeof(TEXTURE_ENTRY_HEADER) + 256*sizeof(PALETTE_ENTRY)
+        + 512*256; /*data*/ 
+    DWORD texSize2 = sizeof(TEXTURE_ENTRY_HEADER) + 256*sizeof(PALETTE_ENTRY)
+        + 256*128; /*data*/ 
+    uLongf unpackedSize = sizeof(UNPACKED_BIN_HEADER) + sizeof(ENTRY_INFO)*5
+        + texSize + texSize2*3; // one extra ENTRY_INFO for header padding
+    bm.new_unpacked(unpackedSize);
+    if (!bm._unpacked) 
+    {
+        LOG1N(L"Unable to allocate buffer for binId=%d", binId);
+        return false;
+    }
+
+    // initialize the bin structure
+    bm._unpacked->header.numEntries = 4;
+    bm._unpacked->header.unknown1 = 8;
+    bm._unpacked->entryInfo[0].offset = 0x40;
+    bm._unpacked->entryInfo[0].size = texSize;
+    bm._unpacked->entryInfo[0].indexOffset = 0xffffffff;
+    for (int i=1; i<4; i++)
+    {
+        bm._unpacked->entryInfo[i].offset = 0x40 + texSize + texSize2*(i-1);
+        bm._unpacked->entryInfo[i].size = texSize2;
+        bm._unpacked->entryInfo[i].indexOffset = 0xffffffff;
+    }
+    TEXTURE_ENTRY* te = (TEXTURE_ENTRY*)((BYTE*)bm._unpacked 
+            + bm._unpacked->entryInfo[0].offset);
+    memcpy(&(te->header.sig),"WE00",4);
+    te->header.unknown1 = 0;
+    te->header.unknown2 = 0;
+    te->header.unknown3 = 3;
+    te->header.bpp = 8;
+    te->header.width = 512;
+    te->header.height = 256;
+    te->header.paletteOffset = sizeof(TEXTURE_ENTRY_HEADER);
+    te->header.dataOffset = sizeof(TEXTURE_ENTRY_HEADER) 
+        + 256*sizeof(PALETTE_ENTRY);
+    te->palette[0].r = 0xc8;
+    te->palette[0].g = 0xc8;
+    te->palette[0].b = 0xc8;
+    te->palette[0].a = 0xff;
+    for (int i=1; i<4; i++)
+    {
+        te = (TEXTURE_ENTRY*)((BYTE*)bm._unpacked 
+                + bm._unpacked->entryInfo[i].offset);
+        memcpy(&(te->header.sig),"WE00",4);
+        te->header.unknown1 = 0;
+        te->header.unknown2 = 0;
+        te->header.unknown3 = 3;
+        te->header.bpp = 8;
+        te->header.width = 256;
+        te->header.height = 128;
+        te->header.paletteOffset = sizeof(TEXTURE_ENTRY_HEADER);
+        te->header.dataOffset = sizeof(TEXTURE_ENTRY_HEADER) 
+            + 256*sizeof(PALETTE_ENTRY);
+        te->palette[0].r = 0xc8;
+        te->palette[0].g = 0xc8;
+        te->palette[0].b = 0xc8;
+        te->palette[0].a = 0xff;
+    }
+
+    wstring dirname(getPesInfo()->gdbDir);
+    switch (GetBinType(binId))
+    {
+        case BIN_NUMS_GA:
+            dirname += L"GDB\\uni\\Russia\\ga\\";
+            break;
+        case BIN_NUMS_GB:
+            dirname += L"GDB\\uni\\Russia\\gb\\";
+            break;
+        case BIN_NUMS_PA:
+            dirname += L"GDB\\uni\\Russia\\pa\\";
+            break;
+        case BIN_NUMS_PB:
+            dirname += L"GDB\\uni\\Russia\\pb\\";
+            break;
+
+    }
+    wstring files[4];
+    files[0] = dirname + L"numbers-back.png";
+    files[1] = dirname + L"numbers-front.png";
+    files[2] = dirname + L"numbers-shorts.png";
+    files[3] = dirname + L"numbers-shorts.png";
+    ReplaceTexturesInBin(bm._unpacked, files, 4);
+    
+    // pack
+    uLongf packedSize = unpackedSize*2; // big buffer just in case;
+    bm.new_packed(packedSize);
+    int retval = compress((BYTE*)bm._packed->data,&packedSize,(BYTE*)bm._unpacked,unpackedSize);
+    if (retval != Z_OK) {
+        LOG1N(L"BIN re-compression failed. retval=%d", retval);
+        return false;
+    }
+    memcpy(bm._packed->header.sig,"\x00\x01\x01WESYS",8);
+    bm._packed->header.sizePacked = packedSize;
+    bm._packed->header.sizeUnpacked = unpackedSize;
+    size = packedSize + 0x10;
+    //DumpData(bm._packed, size);
+
+    // write the data to a pipe
+    HANDLE pipeRead, pipeWrite;
+    if (!CreatePipe(&pipeRead, &pipeWrite, NULL, size*2))
+    {
+        LOG(L"Unable to create a pipe");
+        return false;
+    }
+    DWORD written = 0;
+    if (!WriteFile(pipeWrite, bm._packed, size, &written, 0))
+    {
+        LOG(L"Unable to write to a pipe");
+        return false;
+    }
+    handle = pipeRead;
+    return true;
+}
+
+void ReplaceTexturesInBin(UNPACKED_BIN* bin, wstring files[], size_t n)
+{
+    for (int i=0; i<n; i++)
+    {
+        TEXTURE_ENTRY* tex = (TEXTURE_ENTRY*)((BYTE*)bin + bin->entryInfo[i].offset);
+        BITMAPINFO* bmp = NULL;
+        DWORD texSize = LoadPNGTexture(&bmp, files[i].c_str());
+        if (texSize)
+        {
+            ApplyDIBTexture(tex, bmp);
+            FreePNGTexture(bmp);
+        }
+    }
+}
+
+// Load texture from PNG file. Returns the size of loaded texture
+DWORD LoadPNGTexture(BITMAPINFO** tex, const wchar_t* filename)
+{
+    if (k_kserv.debug)
+        LOG1S(L"LoadPNGTexture: loading %s", (wchar_t*)filename);
+    DWORD size = 0;
+
+    PNGDIB *pngdib;
+    LPBITMAPINFOHEADER* ppDIB = (LPBITMAPINFOHEADER*)tex;
+
+    pngdib = pngdib_p2d_init();
+	//TRACE(L"LoadPNGTexture: structure initialized");
+
+    BYTE* memblk;
+    int memblksize;
+    if(read_file_to_mem(filename,&memblk, &memblksize)) {
+        LOG1S(L"LoadPNGTexture: unable to read PNG file: %s", filename);
+        return 0;
+    }
+    //TRACE(L"LoadPNGTexture: file read into memory");
+
+    pngdib_p2d_set_png_memblk(pngdib,memblk,memblksize);
+	pngdib_p2d_set_use_file_bg(pngdib,1);
+	pngdib_p2d_run(pngdib);
+
+	//TRACE(L"LoadPNGTexture: run done");
+    pngdib_p2d_get_dib(pngdib, ppDIB, (int*)&size);
+	//TRACE(L"LoadPNGTexture: get_dib done");
+
+    pngdib_done(pngdib);
+	TRACE(L"LoadPNGTexture: done done");
+
+	TRACE1N(L"LoadPNGTexture: *ppDIB = %08x", (DWORD)*ppDIB);
+    if (*ppDIB == NULL) {
+        LOG(L"LoadPNGTexture: ERROR - unable to load PNG image.");
+        return 0;
+    }
+
+    // read transparency values from tRNS chunk
+    // and put them into DIB's RGBQUAD.rgbReserved fields
+    ApplyAlphaChunk((RGBQUAD*)&((BITMAPINFO*)*ppDIB)->bmiColors, memblk, memblksize);
+
+    HeapFree(GetProcessHeap(), 0, memblk);
+
+	TRACE(L"LoadPNGTexture: done");
+	return size;
+}
+
+/**
+ * Extracts alpha values from tRNS chunk and applies stores
+ * them in the RGBQUADs of the DIB
+ */
+void ApplyAlphaChunk(RGBQUAD* palette, BYTE* memblk, DWORD size)
+{
+    bool got_alpha = false;
+
+    // find the tRNS chunk
+    DWORD offset = 8;
+    while (offset < size) {
+        PNG_CHUNK_HEADER* chunk = (PNG_CHUNK_HEADER*)(memblk + offset);
+        if (chunk->dwName == MAKEFOURCC('t','R','N','S')) {
+            int numColors = SWAPBYTES(chunk->dwSize);
+            BYTE* alphaValues = memblk + offset + sizeof(chunk->dwSize) + sizeof(chunk->dwName);
+            for (int i=0; i<numColors; i++) {
+                palette[i].rgbReserved = alphaValues[i];
+            }
+            got_alpha = true;
+            break;
+        }
+        // move on to next chunk
+        offset += sizeof(chunk->dwSize) + sizeof(chunk->dwName) + 
+            SWAPBYTES(chunk->dwSize) + sizeof(DWORD); // last one is CRC
+    }
+
+    // initialize alpha to all-opaque, if haven't gotten it
+    if (!got_alpha) {
+        LOG(L"ApplyAlphaChunk::WARNING: no transparency.");
+        for (int i=0; i<256; i++) {
+            palette[i].rgbReserved = 0xff;
+        }
+    }
+}
+
+// Read a file into a memory block.
+static int read_file_to_mem(const wchar_t *fn,unsigned char **ppfiledata, int *pfilesize)
+{
+	HANDLE hfile;
+	DWORD fsize;
+	//unsigned char *fbuf;
+	BYTE* fbuf;
+	DWORD bytesread;
+
+	hfile=CreateFile(fn,GENERIC_READ,FILE_SHARE_READ,NULL,
+		OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+	if(hfile==INVALID_HANDLE_VALUE) return 1;
+
+	fsize=GetFileSize(hfile,NULL);
+	if(fsize>0) {
+		//fbuf=(unsigned char*)GlobalAlloc(GPTR,fsize);
+		//fbuf=(unsigned char*)calloc(fsize,1);
+        fbuf = (BYTE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, fsize);
+		if(fbuf) {
+			if(ReadFile(hfile,(void*)fbuf,fsize,&bytesread,NULL)) {
+				if(bytesread==fsize) { 
+					(*ppfiledata)  = fbuf;
+					(*pfilesize) = (int)fsize;
+					CloseHandle(hfile);
+					return 0;   // success
+				}
+			}
+			free((void*)fbuf);
+		}
+	}
+	CloseHandle(hfile);
+	return 1;  // error
+}
+
+// Substitute kit textures with data from DIB
+// Currently supports only 4bit and 8bit paletted DIBs
+void ApplyDIBTexture(TEXTURE_ENTRY* tex, BITMAPINFO* bitmap)
+{
+    TRACE(L"Applying DIB texture");
+
+	BYTE* srcTex = (BYTE*)bitmap;
+	BITMAPINFOHEADER* bih = &bitmap->bmiHeader;
+	DWORD palOff = bih->biSize;
+    DWORD numColors = bih->biClrUsed;
+    if (numColors == 0)
+        numColors = 1 << bih->biBitCount;
+
+    DWORD palSize = numColors*4;
+	DWORD bitsOff = palOff + palSize;
+
+    if (bih->biBitCount!=4 && bih->biBitCount!=8)
+    {
+        LOG(L"ERROR: Unsupported bit-depth. Must be 4- or 8-bit paletted image.");
+        return;
+    }
+    TRACE1N(L"Loading %d-bit image...", bih->biBitCount);
+
+	// copy palette
+	TRACE1N(L"bitsOff = %08x", bitsOff);
+	TRACE1N(L"palOff  = %08x", palOff);
+    memset((BYTE*)&tex->palette, 0, 0x400);
+    memcpy((BYTE*)&tex->palette, srcTex + palOff, palSize);
+	// swap R and B
+	for (int i=0; i<numColors; i++) 
+	{
+		BYTE blue = tex->palette[i].b;
+		BYTE red = tex->palette[i].r;
+		tex->palette[i].b = red;
+		tex->palette[i].r = blue;
+	}
+	TRACE(L"Palette copied.");
+
+	int k, m, j, w;
+    int width = min(tex->header.width, bih->biWidth); // be safe
+    int height = min(tex->header.height, bih->biHeight); // be safe
+
+	// copy pixel data
+    if (bih->biBitCount == 8)
+    {
+        for (k=0, m=bih->biHeight-1; k<height, m>=bih->biHeight - height; k++, m--)
+        {
+            memcpy(tex->data + k*tex->header.width, srcTex + bitsOff + m*width, width);
+        }
+    }
+    else if (bih->biBitCount == 4)
+    {
+        for (k=0, m=bih->biHeight-1; k<tex->header.height, m>=0; k++, m--)
+        {
+            for (j=0; j<bih->biWidth/2; j+=1) {
+                // expand ech nibble into full byte
+                tex->data[k*(tex->header.width) + j*2] = srcTex[bitsOff + m*(bih->biWidth/2) + j] >> 4 & 0x0f;
+                tex->data[k*(tex->header.width) + j*2 + 1] = srcTex[bitsOff + m*(bih->biWidth/2) + j] & 0x0f;
+            }
+        }
+    }
+	TRACE(L"Texture replaced.");
+}
+
+void FreePNGTexture(BITMAPINFO* bitmap) 
+{
+	if (bitmap != NULL) {
+        pngdib_p2d_free_dib(NULL, (BITMAPINFOHEADER*)bitmap);
+	}
 }
 
