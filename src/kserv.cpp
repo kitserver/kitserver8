@@ -53,6 +53,9 @@
 #define XBIN_KIT_FIRST    10870
 #define XBIN_KIT_LAST     11381
 
+#define XSLOT_FIRST 0x5ef
+#define XSLOT_LAST  0x6ee
+
 HINSTANCE hInst = NULL;
 KMOD k_kserv = {MODID, NAMELONG, NAMESHORT, DEFAULT_DEBUG};
 
@@ -434,7 +437,7 @@ void InitSlotMap(TEAM_KIT_INFO* teamKitInfo)
     _orgTeamKitInfo.clear();
 
     // linked (or re-linked teams)
-    for (int i=0; i<NUM_TEAMS; i++)
+    for (WORD i=0; i<NUM_TEAMS; i++)
     {
         short slot = (short)teamKitInfo[i].pa.slot;
         if (slot >= 0)
@@ -456,6 +459,10 @@ void InitSlotMap(TEAM_KIT_INFO* teamKitInfo)
 
         // store original attributes
         WORD i = git->first;
+        if (i >= NUM_TEAMS)
+            continue; // safety check, until we implement support for
+                      // add additional teams
+
         ORG_TEAM_KIT_INFO o;
         ZeroMemory(&o, sizeof(ORG_TEAM_KIT_INFO));
         memcpy(&o.tki, &teamKitInfo[i], sizeof(TEAM_KIT_INFO));
@@ -492,7 +499,7 @@ void InitSlotMap(TEAM_KIT_INFO* teamKitInfo)
                 L"pb",teamKitInfo[git->first].pb);
 
         // move to next slot
-        if (o.ga||o.gb||o.pa||o.pb)
+        if ((o.ga||o.gb||o.pa||o.pb) && toRelink)
         {
             LOG2N(L"team %d relinked to slot 0x%x", i, nextSlot); 
             nextSlot++;
@@ -510,7 +517,7 @@ void InitSlotMap(TEAM_KIT_INFO* teamKitInfo)
         DWORD protection = 0;
         DWORD newProtection = PAGE_READWRITE;
         if (VirtualProtect(pNumSlots, 4, newProtection, &protection)) 
-            *pNumSlots = 0x0800;  
+            *pNumSlots = XSLOT_LAST+1;  
     }
 }
 
