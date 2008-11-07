@@ -120,6 +120,15 @@ public:
     list<BYTE*> _buffers;
 };
 
+typedef struct _ORG_TEAM_KIT_INFO
+{
+    TEAM_KIT_INFO tki;
+    bool ga;
+    bool pa;
+    bool gb;
+    bool pb;
+} ORG_TEAM_KIT_INFO;
+
 // VARIABLES
 INIT_NEW_KIT origInitNewKit = NULL;
 
@@ -129,7 +138,7 @@ int nextInitedKitsIdx = 0;
 
 GDB* _gdb;
 kserv_config_t _kserv_config;
-hash_map<int,TEAM_KIT_INFO> _orgTeamKitInfo;
+hash_map<int,ORG_TEAM_KIT_INFO> _orgTeamKitInfo;
 hash_map<WORD,WORD> _slotMap;
 hash_map<WORD,WORD> _reverseSlotMap;
 typedef hash_map<WORD,KitCollection>::iterator kc_iter_t;
@@ -158,7 +167,7 @@ void kservWriteEditData(LPCVOID data, DWORD size);
 void kservReadReplayData(LPCVOID data, DWORD size);
 void kservWriteReplayData(LPCVOID data, DWORD size);
 void InitSlotMap(TEAM_KIT_INFO* teamKitInfo=NULL);
-void RelinkTeam(kc_iter_t git, WORD slot, TEAM_KIT_INFO* teamKitInfo=NULL);
+void RelinkKit(WORD teamIndex, WORD slot, KIT_INFO& kitInfo);
 void UndoRelinks();
 bool kservGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize);
 bool CreatePipeForKitBin(DWORD binId, HANDLE& handle, DWORD& size);
@@ -443,8 +452,34 @@ void InitSlotMap(TEAM_KIT_INFO* teamKitInfo)
             git++)
     {
         hash_map<WORD,WORD>::iterator rit = _reverseSlotMap.find(git->first);
-        if (rit == _reverseSlotMap.end())
-            RelinkTeam(git, nextSlot++, teamKitInfo);
+        bool toRelink = (rit == _reverseSlotMap.end());
+
+        // store original attributes
+        WORD i = git->first;
+        ORG_TEAM_KIT_INFO o;
+        ZeroMemory(&o, sizeof(ORG_TEAM_KIT_INFO));
+        memcpy(&o.tki, &teamKitInfo[i], sizeof(TEAM_KIT_INFO));
+        if (git->second.goalkeepers.find(L"ga")!=git->second.goalkeepers.end())
+        {
+            o.ga = true;
+            if (toRelink) RelinkKit(i, nextSlot, teamKitInfo[i].ga);
+        }
+        if (git->second.goalkeepers.find(L"gb")!=git->second.goalkeepers.end())
+        {
+            o.gb = true;
+            if (toRelink) RelinkKit(i, nextSlot, teamKitInfo[i].gb);
+        }
+        if (git->second.players.find(L"pa")!=git->second.players.end())
+        {
+            o.pa = true;
+            if (toRelink) RelinkKit(i, nextSlot, teamKitInfo[i].pa);
+        }
+        if (git->second.players.find(L"pb")!=git->second.players.end())
+        {
+            o.pb = true;
+            if (toRelink) RelinkKit(i, nextSlot, teamKitInfo[i].pb);
+        }
+        _orgTeamKitInfo.insert(pair<int,ORG_TEAM_KIT_INFO>(i,o));
 
         // apply attributes
         ApplyKitAttributes(git->second.goalkeepers, 
@@ -455,6 +490,13 @@ void InitSlotMap(TEAM_KIT_INFO* teamKitInfo)
                 L"gb",teamKitInfo[git->first].gb);
         ApplyKitAttributes(git->second.players, 
                 L"pb",teamKitInfo[git->first].pb);
+
+        // move to next slot
+        if (o.ga||o.gb||o.pa||o.pb)
+        {
+            LOG2N(L"team %d relinked to slot 0x%x", i, nextSlot); 
+            nextSlot++;
+        }
     }
     LOG2N(L"Total slots taken: %d/%d", _slotMap.size(), NUM_SLOTS*2);
 
@@ -472,41 +514,11 @@ void InitSlotMap(TEAM_KIT_INFO* teamKitInfo)
     }
 }
 
-void RelinkTeam(kc_iter_t git, WORD slot, TEAM_KIT_INFO* teamKitInfo)
+void RelinkKit(WORD teamIndex, WORD slot, KIT_INFO& kitInfo)
 {
-    if (!teamKitInfo)
-        teamKitInfo = (TEAM_KIT_INFO*)(*(DWORD*)data[PLAYERS_DATA] 
-                + data[TEAM_KIT_INFO_OFFSET]);
-
-    WORD teamIndex = git->first;
-    TEAM_KIT_INFO tki;
-    tki.ga.slot = teamKitInfo[teamIndex].ga.slot;
-    tki.pa.slot = teamKitInfo[teamIndex].pa.slot;
-    tki.gb.slot = teamKitInfo[teamIndex].gb.slot;
-    tki.pb.slot = teamKitInfo[teamIndex].pb.slot;
-
-    pair<hash_map<int,TEAM_KIT_INFO>::iterator,bool> ires =
-        _orgTeamKitInfo.insert(pair<int,TEAM_KIT_INFO>(teamIndex,tki));
-    if (!ires.second)
-    {
-        // already saved in the map.
-        TRACE1N(L"teamKitInfo for %d already saved.", teamIndex);
-    }
-
+    kitInfo.slot = slot;
     _slotMap.insert(pair<WORD,WORD>(slot,teamIndex));
     _reverseSlotMap.insert(pair<WORD,WORD>(teamIndex,slot));
-
-    // only relink those kits that we actually have in GDB
-    if (git->second.goalkeepers.find(L"ga") != git->second.goalkeepers.end())
-        teamKitInfo[teamIndex].ga.slot = slot;
-    if (git->second.goalkeepers.find(L"gb") != git->second.goalkeepers.end())
-        teamKitInfo[teamIndex].gb.slot = slot;
-    if (git->second.players.find(L"pa") != git->second.players.end())
-        teamKitInfo[teamIndex].pa.slot = slot;
-    if (git->second.players.find(L"pb") != git->second.players.end())
-        teamKitInfo[teamIndex].pb.slot = slot;
-
-    LOG2N(L"team %d relinked to slot 0x%04x", teamIndex, slot); 
 }
 
 void ApplyKitAttributes(map<wstring,Kit>& m, const wchar_t* kitKey, KIT_INFO& ki)
@@ -564,16 +576,24 @@ void KCOLOR2RGBAColor(const KCOLOR kcolor, RGBAColor& color)
 
 void UndoRelinks(TEAM_KIT_INFO* teamKitInfo)
 {
-    for (hash_map<int,TEAM_KIT_INFO>::iterator it = _orgTeamKitInfo.begin();
+    for (hash_map<int,ORG_TEAM_KIT_INFO>::iterator it = _orgTeamKitInfo.begin();
             it != _orgTeamKitInfo.end();
             it++)
     {
-        teamKitInfo[it->first].ga.slot = it->second.ga.slot;
-        teamKitInfo[it->first].pa.slot = it->second.pa.slot;
-        teamKitInfo[it->first].gb.slot = it->second.gb.slot;
-        teamKitInfo[it->first].pb.slot = it->second.pb.slot;
+        if (it->second.ga) 
+            memcpy(&teamKitInfo[it->first].ga, 
+                    &it->second.tki.ga, sizeof(KIT_INFO));
+        if (it->second.pa) 
+            memcpy(&teamKitInfo[it->first].pa, 
+                    &it->second.tki.pa, sizeof(KIT_INFO));
+        if (it->second.gb) 
+            memcpy(&teamKitInfo[it->first].gb, 
+                    &it->second.tki.gb, sizeof(KIT_INFO));
+        if (it->second.pb) 
+            memcpy(&teamKitInfo[it->first].pb, 
+                    &it->second.tki.pb, sizeof(KIT_INFO));
 
-        LOG1N(L"Team %d slot links restored", it->first);
+        LOG1N(L"TeamKitInfo for %d restored", it->first);
     }
 }
 
