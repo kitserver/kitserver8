@@ -153,6 +153,8 @@ KEXPORT void kservAfterReadNames();
 void DumpSlotsInfo();
 void kservReadEditData(LPCVOID data, DWORD size);
 void kservWriteEditData(LPCVOID data, DWORD size);
+void kservReadReplayData(LPCVOID data, DWORD size);
+void kservWriteReplayData(LPCVOID data, DWORD size);
 void InitSlotMap(TEAM_KIT_INFO* teamKitInfo=NULL);
 void RelinkTeam(int teamIndex, WORD slot, TEAM_KIT_INFO* teamKitInfo=NULL);
 void UndoRelinks();
@@ -260,6 +262,8 @@ HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
     // add callbacks
     addReadEditDataCallback(kservReadEditData);
     addWriteEditDataCallback(kservWriteEditData);
+    addReadReplayDataCallback(kservReadReplayData);
+    addWriteReplayDataCallback(kservWriteReplayData);
     afsioAddCallback(kservGetFileInfo);
 
 	TRACE(L"Initialization complete.");
@@ -344,6 +348,7 @@ DWORD kservAfterCreateTexture(DWORD p1)
 void kservAfterReadNamesCallPoint()
 {
     __asm {
+        mov dword ptr ds:[eax+0x2884], 0x144  // execute replaced code
         pushfd 
         push ebp
         push eax
@@ -352,7 +357,6 @@ void kservAfterReadNamesCallPoint()
         push edx
         push esi
         push edi
-        mov [eax+0x2884], 0x144  // execute replaced code
         call kservAfterReadNames
         pop edi
         pop esi
@@ -451,7 +455,7 @@ void InitSlotMap(TEAM_KIT_INFO* teamKitInfo)
         DWORD protection = 0;
         DWORD newProtection = PAGE_READWRITE;
         if (VirtualProtect(pNumSlots, 4, newProtection, &protection)) 
-            *pNumSlots = 0x0700;  
+            *pNumSlots = 0x0800;  
     }
 }
 
@@ -578,6 +582,20 @@ void kservWriteEditData(LPCVOID buf, DWORD size)
     TEAM_KIT_INFO* teamKitInfo = (TEAM_KIT_INFO*)((BYTE*)buf 
             + 0x120 + data[TEAM_KIT_INFO_OFFSET] - 8);
     UndoRelinks(teamKitInfo);
+}
+
+/**
+ * replay data read callback
+ */
+void kservReadReplayData(LPCVOID buf, DWORD size)
+{
+}
+
+/**
+ * replay data write callback
+ */
+void kservWriteReplayData(LPCVOID buf, DWORD size)
+{
 }
 
 /**
@@ -1195,9 +1213,9 @@ void ApplyDIBTexture(TEXTURE_ENTRY* tex, BITMAPINFO* bitmap)
     }
     else if (bih->biBitCount == 4)
     {
-        for (k=0, m=bih->biHeight-1; k<tex->header.height, m>=0; k++, m--)
+        for (k=0, m=bih->biHeight-1; k<tex->header.height, m>=bih->biHeight - height; k++, m--)
         {
-            for (j=0; j<bih->biWidth/2; j+=1) {
+            for (j=0; j<width/2; j+=1) {
                 // expand ech nibble into full byte
                 tex->data[k*(tex->header.width) + j*2] = srcTex[bitsOff + m*(bih->biWidth/2) + j] >> 4 & 0x0f;
                 tex->data[k*(tex->header.width) + j*2 + 1] = srcTex[bitsOff + m*(bih->biWidth/2) + j] & 0x0f;
