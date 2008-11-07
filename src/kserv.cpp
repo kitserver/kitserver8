@@ -14,6 +14,7 @@
 #include "commctrl.h"
 #include "afsio.h"
 #include "afsreader.h"
+#include "teaminfo.h"
 #include "soft\zlib123-dll\include\zlib.h"
 
 #if _CPPLIB_VER < 503
@@ -160,6 +161,10 @@ bool CreatePipeForKitBin(DWORD binId, HANDLE& handle, DWORD& size);
 bool CreatePipeForFontBin(DWORD binId, HANDLE& handle, DWORD& size);
 bool CreatePipeForNumbersBin(DWORD binId, HANDLE& handle, DWORD& size);
 int GetBinType(DWORD id);
+void ApplyKitAttributes(map<wstring,Kit>& m, const wchar_t* kitKey, KIT_INFO& ki);
+KEXPORT void ApplyKitAttributes(const map<wstring,Kit>::iterator kiter, KIT_INFO& ki);
+void RGBAColor2KCOLOR(const RGBAColor& color, KCOLOR& kcolor);
+void KCOLOR2RGBAColor(const KCOLOR kcolor, RGBAColor& color);
 
 DWORD LoadPNGTexture(BITMAPINFO** tex, const wchar_t* filename);
 void ApplyAlphaChunk(RGBQUAD* palette, BYTE* memblk, DWORD size);
@@ -423,6 +428,16 @@ void InitSlotMap(TEAM_KIT_INFO* teamKitInfo)
         hash_map<WORD,WORD>::iterator rit = _reverseSlotMap.find(git->first);
         if (rit == _reverseSlotMap.end())
             RelinkTeam(git->first, nextSlot++, teamKitInfo);
+
+        // apply attributes
+        ApplyKitAttributes(git->second.goalkeepers, 
+                L"ga",teamKitInfo[git->first].ga);
+        ApplyKitAttributes(git->second.players, 
+                L"pa",teamKitInfo[git->first].pa);
+        ApplyKitAttributes(git->second.goalkeepers, 
+                L"gb",teamKitInfo[git->first].gb);
+        ApplyKitAttributes(git->second.players, 
+                L"pb",teamKitInfo[git->first].pb);
     }
     LOG2N(L"Total slots taken: %d/%d", _slotMap.size(), NUM_SLOTS*2);
 
@@ -469,6 +484,59 @@ void RelinkTeam(int teamIndex, WORD slot, TEAM_KIT_INFO* teamKitInfo)
     teamKitInfo[teamIndex].pb.slot = slot;
 
     LOG2N(L"team %d relinked to slot 0x%04x", teamIndex, slot); 
+}
+
+void ApplyKitAttributes(map<wstring,Kit>& m, const wchar_t* kitKey, KIT_INFO& ki)
+{
+    map<wstring,Kit>::iterator kiter = m.find(kitKey);
+    if (kiter != m.end())
+        ApplyKitAttributes(kiter, ki);
+}
+
+KEXPORT void ApplyKitAttributes(const map<wstring,Kit>::iterator kiter, KIT_INFO& ki)
+{
+    // load kit attributes from config.txt, if needed
+    _gdb->loadConfig(kiter->second);
+
+    // apply attributes
+    if (kiter->second.attDefined & MODEL)
+        ki.model = kiter->second.model;
+    if (kiter->second.attDefined & COLLAR)
+        ki.collar = kiter->second.collar;
+    if (kiter->second.attDefined & SHIRT_NUMBER_LOCATION)
+        ki.frontNumberPosition = kiter->second.shirtNumberLocation;
+    if (kiter->second.attDefined & SHORTS_NUMBER_LOCATION)
+        ki.shortsNumberPosition = kiter->second.shortsNumberLocation;
+    if (kiter->second.attDefined & NAME_LOCATION)
+        ki.fontPosition = kiter->second.nameLocation;
+    if (kiter->second.attDefined & NAME_SHAPE)
+        ki.fontShape = kiter->second.nameShape;
+    if (kiter->second.attDefined & MAIN_COLOR) 
+    {
+        RGBAColor2KCOLOR(kiter->second.mainColor, ki.mainColor);
+        // kit selection uses all 5 shirt colors - not only main (first one)
+        for (int i=0; i<4; i++)
+            RGBAColor2KCOLOR(kiter->second.mainColor, ki.editShirtColors[i]);
+    }
+    // shorts main color
+    if (kiter->second.attDefined & SHORTS_MAIN_COLOR)
+        RGBAColor2KCOLOR(kiter->second.shortsFirstColor, ki.shortsFirstColor);
+}
+
+void RGBAColor2KCOLOR(const RGBAColor& color, KCOLOR& kcolor)
+{
+    kcolor = 0x8000
+        +((color.r>>3) & 31)
+        +0x20*((color.g>>3) & 31)
+        +0x400*((color.b>>3) & 31);
+}
+
+void KCOLOR2RGBAColor(const KCOLOR kcolor, RGBAColor& color)
+{
+    color.r = (kcolor & 31)<<3;
+    color.g = (kcolor>>5 & 31)<<3;
+    color.b = (kcolor>>10 & 31)<<3;
+    color.a = 0xff;
 }
 
 void UndoRelinks(TEAM_KIT_INFO* teamKitInfo)

@@ -225,7 +225,7 @@ void GDB::loadConfig(Kit& kit)
     if (readConfig((this->dir + kit.foldername + L"\\config.txt").c_str()))
     {
         _getConfig("", "model", DT_DWORD, (DWORD)&kattr_data(kit,ATT_MODEL), kitConfig);
-        _getConfig("", "collar", DT_STRING, (DWORD)&kattr_data(kit,ATT_COLLAR), kitConfig);
+        _getConfig("", "collar", DT_DWORD, (DWORD)&kattr_data(kit,ATT_COLLAR), kitConfig);
         _getConfig("", "shirt.number.location", DT_STRING, (DWORD)&kattr_data(kit,ATT_SHIRT_NUMBER_LOCATION), kitConfig);
         _getConfig("", "shorts.number.location", DT_STRING, (DWORD)&kattr_data(kit,ATT_SHORTS_NUMBER_LOCATION), kitConfig);
         _getConfig("", "name.location", DT_STRING, (DWORD)&kattr_data(kit,ATT_NAME_LOCATION), kitConfig);
@@ -264,13 +264,7 @@ static void kitConfig(char* pName, const void* pValue, DWORD a)
             break;
 
         case ATT_COLLAR:
-            if (equals(pValue, L"yes")) kd->kit.collar = 0;
-            else if (equals(pValue, L"no")) kd->kit.collar = 1;
-            else if (equals(pValue, L"0")) kd->kit.collar = 0;
-            else if (equals(pValue, L"1")) kd->kit.collar = 1;
-            else if (equals(pValue, L"2")) kd->kit.collar = 2;
-            else if (equals(pValue, L"3")) kd->kit.collar = 3;
-            else kd->kit.collar = 1;
+            kd->kit.collar = *(DWORD*)pValue;
             kd->kit.attDefined |= COLLAR;
             GDB_DEBUG(wlog,(slog,L"collar = %d\n",kd->kit.collar));
             break;

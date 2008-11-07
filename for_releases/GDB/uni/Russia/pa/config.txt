@@ -2,10 +2,10 @@
 
 collar = 1
 description = "Home"
-model = 103
+model = 111
 name.location = top
 name.shape = type4
-radar.color = CA0717
+main.color = CA0717
 shirt.number.location = center
 shorts.color = CA0717
 shorts.number.location = right
