@@ -398,7 +398,7 @@ void kservAfterReadNamesCallPoint()
 KEXPORT void kservAfterReadNames()
 {
     // dump slot information
-    DumpSlotsInfo();
+    //DumpSlotsInfo();
 
     // initialize kit slots
     InitSlotMap();
@@ -610,7 +610,7 @@ void UndoRelinks(TEAM_KIT_INFO* teamKitInfo)
 void kservReadEditData(LPCVOID buf, DWORD size)
 {
     // dump slot information again
-    DumpSlotsInfo();
+    //DumpSlotsInfo();
 
     // initialize kit slots
     TEAM_KIT_INFO* teamKitInfo = (TEAM_KIT_INFO*)((BYTE*)buf 
