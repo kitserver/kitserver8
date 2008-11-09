@@ -7,7 +7,7 @@
         .note { background-color:#ffc;color:#800; }
         div.note { padding:5px; }
         p.minornote { background-color:#eee;color:#666;padding:5px;font-style:italic }
-        p.devnote { font-weight:bold;font-style:italic;color:#666; }
+        .devnote { font-weight:bold;font-style:italic;color:#666; }
         table {padding:10px 0 10px 0;margin-top:5px;border-right:1px;border-bottom:1px}
         table td {padding:9px;border:1px solid #888}
         table th {padding:5px;border:1px solid #888;background-color:#ddf;text-align:left}
@@ -49,7 +49,7 @@
 Version history: <a href="history.txt">history.txt</a><br />
 </div>
 <div>
-October 23, 2008 - <b>Kitserver 8.0.9</b><br />
+November 9, 2008 - <b>Kitserver 8.1.0</b><br />
 </div>
 <p class="note">
 The most up-to-date version of this documentation, and the translations to many languages, are located here: <a href="http://kitserver.ath.cx/docs">http://kitserver.ath.cx/docs/</a>
@@ -62,15 +62,19 @@ Below is a quick summary of the available features. Follow the link in the left 
 </p>
 
 <table>
+    <tr><td><a href="#kserv">Kserv 8.1.0</a></td>
+        <th><b>kserv.dll</b></th>
+        <td>Organize your kits into GDB, and assign each team its own kits.</td>
+    </tr>
     <tr><td><a href="#afs2fs">AFS2FS 8.0.8</a></td>
         <th><b>afs2fs.dll</b></th>
         <td>Manage AFS (.img) game content using files and folders: much easier and quicker to install/remove patches, without the need modify *.img files</td>
     </tr>
-    <tr><td><a href="#lodmixer">LOD Mixer 8.0.8</a></td>
+    <tr><td><a href="#lodmixer">LOD Mixer 8.1.0</a></td>
         <th><b>lodmixer.dll</b></th>
         <td>Select any quality settings (Low,Medium,High); various tweaks to graphics and game options: 
 Any window resolution supported, hidden fullscreen resolutions unlocked;
-Manual/Automatic aspect ratio correction.
+Manual/Automatic aspect ratio correction. LOD adjustment is available too.
         </td>
     </tr>
     <tr><td><a href="#camera">Camera module 8.0.8</a></td>
@@ -169,9 +173,212 @@ Each module can have its own configuration section, which starts with <b>[<i>mod
 <img src="config.png" style="border:0"/>
 </p>
 
+<a name="kserv"><br /></a>
+<p><a class="backlink" href="#">Top</a></p>
+<h3>4. Kserv Module (kserv.dll)</h3>
+
+<p>
+Kserv module is responsible for serving kits from the GDB ("<b>G</b>ame content <b>D</b>ata<b>B</b>ase") during the game. The main feature of it is that you are not limited to the slots that cv06.img has for the kits, and you can assign a kit to any team. 
+At the moment, it is not possible to have more than 2 kits, but in the future
+releases, you'll be able have a long list of alternative uniforms.
+</p>
+
+<p class="devnote" style="font-weight:normal">
+Kserv was historically the first module implemented in the original Kitserver program, made for PES3. That's where the <b>Kitserver</b> name originated from. Later, as more functionality were introduced as new modules, to avoid confusion, we changed the name of the module that serves kits to <b>kserv</b>, while Kitserver name now refers to the entire program.
+</p>
+
+<h5>4.1 GDB organization</h5>
+
+<p>
+The GDB contains a folder named <b>uni</b>, which is responsible for storing
+the team kits (uniforms). The single most important file inside <b>uni</b> is called <b>map.txt</b>.
+This file tells kitserver where to find the kits for particular team. As you know, each team has a unique id - an integer number from 0 to 313, i think. <span class="devnote">(Currently kitserver only supports teams with ids 0 - 257)</span>. For every team in the GDB, you must specify in the map.txt where the kits for this team are. Here is an example:
+
+<pre>
+# This config maps team number into folder name
+# Format: &lt;team-num&gt;,"&lt;folder name&gt;"
+# Example: 21,"Russia"
+
+21,"National\Russia"
+9, "National\Germany"
+6, "National\England"
+</pre>
+</p>
+
+<div class="note">IMPORTANT: Double quotes are not required, but advised - just so that there is no ambiguity about folder name. IDs for the teams will depend on whether you have installed any patches, but for default option file, you can see the IDs here - <a href="uni.txt">uni.txt</a> file</div>
+
+<p>
+Please note that the sample GDB (provided with kitserver) is just one possible way of organizing the teams and 
+folders. It uses "EPL" folder to group all english teams, "National" - to group all national
+teams, and so for. You may find that you just prefer a flat list of folders - without these
+extra groups. In that case, just modify the <b>map.txt</b> file accordingly, and create
+the structure of folders that you prefer. That's the main advantage of having map.txt - the
+flexibility of kit organization.
+</p>
+
+<p>
+You can see from map.txt above that in order to find a kit for team #21, the kitserver needs to go to the 
+folder <b>GDB\uni\National\Russia</b>. This folder will contain all of the kits that are
+available to team #21. Inside it, you must create an individual folder for each kit. Like this:
+
+<img src="russia.png"/>
+
+For players, 1st kit must have a folder name <b>pa</b>, 2nd - <b>pb</b>. Extra kits can have 
+any folder names that start with letter "p". I found it useful to prefix all extra kits with 
+<b>px-</b>. For example, <b>px-redwhite</b>. For the goalkeepers, 1st kit must be in the folder
+<b>ga</b>, 2nd - in the <b>gb</b>. Extra kits can have any folder names that start with letter "g".
+</p>
+
+<div class="note">IMPORTANT: Folder name acts as a kind of ID for kitserver, which puts the 
+additional restriction on all those folder names: they cannot contain spaces, and preferably
+they should be relatively short, and in English,French or other language withing Latin1 
+(iso8859-1) character set. Typically, if you want to make sure kitserver can properly
+find/read the folder, just use latin characters, digits, underscore, and the dash (minus sign).
+</div>
+
+<p>
+Now let's move on inside one of the kit folders. Take <b>pa</b>, for example.
+
+<img src="pa.png" />
+
+See the table below for explanation of each file:
+</p>
+
+<div class="note">Images must be in PNG format: 8-bit paletted or 4-bit paletted (those may be used with fonts/numbers). So the filename must have 
+a ".png" extension.</b></div>
+
+<p>
+<table>
+    <tr><th>Reserved file name</th><th>Meaning</th><th>Format</th></tr>
+    <tr><td><nobr>kit.png</nobr></td><td>Kit texture</td>
+        <td>512x512 8-bit paletted image in PNG format.
+    </td></tr>
+    <tr><td><nobr>font.png</nobr></td><td>Font texture: used for names on the back of the shirt</td>
+        <td>512x128 8-bit or 4-bit paletted image in PNG format.</td></tr>
+    <tr><td><nobr>numbers-back.png</nobr></td><td>Numbers texture: used for (big) numbers on the back of the shirt</td>
+        <td>512x256 8-bit or 4-bit paletted image in PNG format.</td></tr>
+    <tr><td><nobr>numbers-front.png</nobr></td><td>Numbers texture: used for smaller front numbers</td>
+        <td>256x128 8-bit or 4-bit paletted image in PNG format.</td></tr>
+    <tr><td><nobr>numbers-shorts.png</nobr></td><td>Numbers texture: used for numbers on shorts</td>
+        <td>256x128 8-bit or 4-bit paletted image in PNG format.</td></tr>
+    <tr><td>config.txt</td><td>Kit attribute configuration file (see next section for more details)</td>
+        <td>text file (in UTF-8 encoding)</td></tr>
+</table>
+</p>
+
+<p class="devnote">
+IMPORTANT NOTE TO KITMAKERS:<br />
+BMP kits are no longer supported, please use PNG format instead.
+</p>
+
+<h5>4.2. config.txt</h5>
+
+<p>
+This is the attribute configuration file.
+As before, it is just a plain text file - you can use Notepad or any other text editor to
+view or modify it. For each folder, you should have a <b>config.txt</b> file in it.</p>
+
+<p>
+Here's the summary table of all the supported attributes:<br />
+</p>
+
+<table>
+    <tr><th>Attribute name</th><th>Meaning</th><th>Format</th><th>Example</th></tr>
+    <tr>
+        <td><b>model</b></td>
+        <td>identifier for 3D-model of the shirt</td>
+        <td>decimal integer</td>
+        <td><nobr>model = 37</nobr></td>
+    </tr>
+    <tr>
+        <td><b>collar</b></td>
+        <td>Collar-type (note that different models will have different interpratations of the collar value)</td>
+        <td>1/2/3/4</td>
+        <td><nobr>collar = 1</nobr></td>
+    </tr>
+    <tr>
+        <td><b>shirt.number.location</b></td>
+        <td>Where on the front of the shirt the number should be placed. ("off" means the number
+will not be displayed at all.) This only applies to national teams.
+        </td>
+        <td>center|topright|off</td>
+        <td><nobr>shirt.number.location = topright</nobr></td>
+    </tr>
+
+    <tr>
+        <td><b>shorts.number.location</b></td>
+        <td>Where on the shorts the number should be placed. ("off" means the number
+will not be displayed at all.)
+        </td>
+        <td>left|right|off</td>
+        <td><nobr>shorts.number.location = left</nobr></td>
+    </tr>
+    <tr>
+        <td><b>name.location</b></td>
+        <td>Where on the shirt the name of the player should be placed. This is useful
+for teams like Boca Juniors, who have player names printed at the bottom of the
+shirt, although you need to use it with the correct model - some models support names
+at the bottom, some - do not. ("off" means the name will not be displayed at all.)</td>
+        <td>top|bottom|off</td>
+        <td><nobr>name.location = top</nobr></td>
+    </tr>
+    <tr>
+        <td><b>logo.location</b></td>
+        <td>Where on the shirt the sponsor logo should be placed. (This attribute
+is probably not gonna be very useful with kitserver, since if the
+team has the logo on the back of the shirt, it will probably be painted
+as part of the kit texture itself, by kitmaker)</td>
+        <td>top|bottom|off</td>
+        <td><nobr>logo.location = off</nobr></td>
+    </tr>
+    <tr>
+        <td><b>name.shape</b></td>
+        <td>Indicates whether the name should be curved or straight. The values
+have the same meaning as in Edit Mode: type1 - straight, type2 - slightly curved,
+type3 - curved, type4 - even more curved.</td>
+        <td>type1|type2|type3|type4</td>
+        <td><nobr>name.shape = type1</nobr></td>
+    </tr>
+	<tr>
+        <td><b>main.color</b><br />
+            <span style="color:#888"><b>( radar.color )</b></span></td>
+        <td>This attribute specifies the main color of the shirt. It is also used as the color of the players on radar screen. It also influences the kit that is selected by default. (The old name "radar.color" is also supported for backwards compatibility)</td>
+        <td>color, written in hexadecimal format RRGGBB (red,green,blue)</td>
+        <td><nobr>main.color = 0A5D88</nobr><br />
+            <nobr><span style="color:#888">radar.color = 0A5D88</span></nobr></td>
+    </tr>
+	<tr>
+        <td><b>shorts.color</b></td>
+        <td>This attribute specifies the color of the player/gk shorts. The color
+         of shorts is used by the game to determine correct color of the underpants
+         for those players who wear them, and have them set to match the shorts
+         color.</td>
+        <td>color, written in hexadecimal format RRGGBB (red,green,blue)</td>
+        <td><nobr>shorts.color = 0A5D88</nobr></td>
+    </tr>
+	<tr>
+        <td><b>description</b></td>
+        <td>Any notes about the kit. This text will be displayed on
+            kit selection screen. Useful when there are
+            several kits that look nearly identical,
+            but you want to know which one is currently selected.</td>
+        <td>any text in double quotes</td>
+        <td><nobr>description = "All white (Euro 2008)"</nobr></td>
+    </tr>
+</table>
+
+<p class="devnote">
+By default, the usage of "description" attribute is enabled, but if you want, you can disable it. To do that, edit your config.txt file, and the following option to the [kserv] section:
+</p>
+
+<pre>
+[kserv]
+use.description = 0
+</pre>
+
 <a name="afs2fs"><br /></a>
 <p><a class="backlink" href="#">Top</a></p>
-<h3>4. AFS2FS Module (afs2fs.dll)</h3>
+<h3>5. AFS2FS Module (afs2fs.dll)</h3>
 
 <p>
 This module allows to organize your BIN-files into folders on disk, instead of inserting them into AFS(*.img) files, which is sometimes a pain, and may require a lot of extra disk space.
@@ -180,7 +387,7 @@ This module allows to organize your BIN-files into folders on disk, instead of i
 <p>Several people over the last few years had suggested similar solutions, but ultimately it was <b>Str@teG</b> who kept talking about this idea of organizing BINs into folders, and eventually i decided to just go ahead and do it. So now this is realized in the this module - afs2fs.dll. From personal experience, i know that people are sometimes reluctant to install big patches that require an AFS-rebuild, not because it's particularly difficult or anything, but because it can be time-consuming and disk-space-hungry. With afs2fs, this is now very easy: you just put the BIN into correct folder and that's it. And, of course, there are no size constraints - the bins can be as large as needed!
 </p>
 
-<h5>4.1. How to set up the folders</h5>
+<h5>5.1. How to set up the folders</h5>
 
 <p>
 In <b>kitserver</b> folder, there should be an <b>img</b> folder - if it's not there, create it, and then inside "img", create folders, as needed, named - <b>cv00.img</b>, <b>cv01.img</b>, <b>cs0d.img</b>, and so for. That's where you're going to be putting the BIN-files. 
@@ -194,7 +401,7 @@ In <b>kitserver</b> folder, there should be an <b>img</b> folder - if it's not t
 <img src="afs2fs.png"/>
 </p>
 
-<h5>4.2. How to name the files</h5>
+<h5>5.2. How to name the files</h5>
 
 <p class="devnote">In general, you can name the files whichever way you want, but you must follow one rule: there must be a BIN number in the name, and it must be preceded by an underscore character ('_'). Also, the filenames CANNOT be longer than 63 characters.
 </p>
@@ -214,7 +421,7 @@ Examples of incorrectly named files:<br /><br />
 <span style="color:#800;font-weight:bold">face.bin</span> - no BIN number.<br />
 </p>
 
-<h5>4.3. Placement of "img" folder</h5>
+<h5>5.3. Placement of "img" folder</h5>
 <p>
 By default, the AFS2FS module expects to find the <b>img</b> folder inside the <b>kitserver</b> folder. However, it is also possible to configure the location of "img" folder to be anywhere on your hard disk. This makes it easier to both manage your game content - you can keep the "GDB" and "img" folders away from the game/kitserver folders, and also makes for an easier upgrade of kitserver.
 </p>
@@ -235,7 +442,7 @@ img.dir = "c:\mypesfiles\"
 </p>
 
 
-<h5>4.4. Names for balls and songs</h5>
+<h5>5.4. Names for balls and songs</h5>
 <p>
 When replacing songs with AFS2FS, it is also possible to change the title of the song and the author name, by using a <b>songs.txt</b> map-file, which should be put into <b>kitserver\names</b> folder.<br />
 <br />
@@ -265,7 +472,7 @@ Similarly with balls, it is often desirable to specify names which are longer th
 
 <a name="lodmixer"><br /></a>
 <p><a class="backlink" href="#">Top</a></p>
-<h3>5. LOD Mixer (lodmixer.dll)</h3>
+<h3>6. LOD Mixer (lodmixer.dll)</h3>
 
 <p>
 LOD-Mixer is the module that allows to fine-tune some aspects of PES2008 graphics engine.<br />
@@ -273,7 +480,7 @@ Currently the following features are implemented: screen resolution and aspect r
 configuration file (kitserver/config.txt), but you can also use Kitserver's configuration tool (<b>config.exe</b>). 
 </p>
 
-<h5>5.1. Aspect Ratio.</h5>
+<h5>6.1. Aspect Ratio.</h5>
 <p>
 Many LCD monitors are neither 4:3 nor 16:9. Often, a 16:10 ratio is
 used, or even 16:9.6. This results in the picture being distored: players either
@@ -295,7 +502,7 @@ screen, we need to account for that. Setting aspect ratio to 1.6 (which is a
 natural AR for my laptop) does the trick.
 </p>
 
-<h5>5.2. Screen Resolution.</h5>
+<h5>6.2. Screen Resolution.</h5>
 <p>
 You can set any screen resolution you want, if you play in a Windowed mode. Even
 crazy screens like 1567x532 will work, but you're likely to suffer from 
@@ -306,7 +513,7 @@ accidently choose an unsupported fullscreen resolution, then PES should still
 be able to start in a window.
 </p>
 
-<h5>5.3. Controller check</h5>
+<h5>6.3. Controller check</h5>
 <p>
 This feature may be useful to people who like to play a tournament - a league or
 cup together. PES 2009 doesn't allow human players to control both teams, unless
@@ -318,9 +525,19 @@ your friend control the opposition - to make things more interesting.
 You can also now choose a "Spectator" mode for in tournaments.
 </p>
 
+<h5>6.4. LOD adjustment</h5>
+<p>
+This release contains a first implementation of LOD adjustment tools for PES2009.
+For now, all you can do is basically check the checkbox that says: <b>LOD: Enable image quality</b> -
+what it does is disables the lowest LOD level, where the game uses low-poly
+models and low quality textures. This fixes the blurred faces problem, however
+it may affect the frame-rate, depending on the power of your videocard. Give it
+a try.
+</p>
+
 <a name="camera"><br /></a>
 <p><a class="backlink" href="#">Top</a></p>
-<h3>6. Camera module (camera.dll)</h3>
+<h3>7. Camera module (camera.dll)</h3>
 
 <p>
 For reasons known only to Konami product managers, for the second year running, they took away the interface feature that allowed to adjust camera angle (it was in PES3-PES6, but it disappeared starting with PES2008). The underlying logic is still present in the game executable though, and this module allows you to take advantage of it. You can adjust the camera angle: standard values are 0 - 9, but you can actually set a bigger value, which will result in camera turning even more. For example, i like to play with angle value set to 30.</p>

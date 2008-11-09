@@ -19,6 +19,7 @@ LMCONFIG _lmconfig = {
     {DEFAULT_LOD_SWITCH1, DEFAULT_LOD_SWITCH2},
     DEFAULT_ASPECT_RATIO_CORRECTION_ENABLED,
     DEFAULT_CONTROLLER_CHECK_ENABLED,
+    DEFAULT_LODCHECK1,
 };
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
@@ -80,6 +81,7 @@ void initLodMixer()
     getConfig("lodmixer", "lod.switch2", DT_FLOAT, 5, lodmixerConfig);
     getConfig("lodmixer", "aspect-ratio.correction.enabled", DT_DWORD, 6, lodmixerConfig);
     getConfig("lodmixer", "controller.check.disabled", DT_DWORD, 7, lodmixerConfig);
+    getConfig("lodmixer", "lod.check1", DT_DWORD, 8, lodmixerConfig);
     LOG2N(L"Screen resolution to force: %dx%d", 
             _lmconfig.screen.width, _lmconfig.screen.height);
 
@@ -152,6 +154,15 @@ void initLodMixer()
         }
     }
 
+    if (!_lmconfig.lodCheck1)
+    {
+        bptr = (BYTE*)code[C_LODCHECK_1];
+        if (bptr && VirtualProtect(bptr, 4, newProtection, &protection)) {
+            bptr[0] = 0x90;  // nop
+            bptr[1] = 0x90;  // nop
+        }
+    }
+
     LOG(L"Initialization complete.");
     unhookFunction(hk_D3D_Create, initLodMixer);
 }
@@ -180,6 +191,9 @@ void lodmixerConfig(char* pName, const void* pValue, DWORD a)
 		case 7: // Controller check
 			_lmconfig.controllerCheckEnabled = *(DWORD*)pValue != 0;
 			break;
+        case 8: // lod-check
+            _lmconfig.lodCheck1 = *(DWORD*)pValue != 0;
+            break;
 	}
 }
 

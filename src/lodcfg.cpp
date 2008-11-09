@@ -69,6 +69,7 @@ LMCONFIG _lmconfig = {
     {DEFAULT_LOD_SWITCH1, DEFAULT_LOD_SWITCH2},
     DEFAULT_ASPECT_RATIO_CORRECTION_ENABLED,
     DEFAULT_CONTROLLER_CHECK_ENABLED,
+    DEFAULT_LODCHECK1,
 };
 DWORD _cameraAngle = 0;
 
@@ -111,6 +112,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 				else if ((HWND)lParam == g_lodCheckBox)
                 {
+                    /*
                     bool checked = SendMessage(g_lodCheckBox,BM_GETCHECK,0,0);
                     for (int i=0; i<2; i++)
                     {
@@ -122,7 +124,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                         // disable custom LOD: switch back to defaults
                         ResetLodSwitches();
                     }
-
+                    */
                 }
 				else if ((HWND)lParam == g_arCheckBox)
                 {
@@ -391,6 +393,11 @@ void UpdateControls(LMCONFIG& cfg)
     SendMessage(g_controllerCheckBox, BM_SETCHECK, BST_UNCHECKED, 0);
     if (cfg.controllerCheckEnabled)
         SendMessage(g_controllerCheckBox, BM_SETCHECK, BST_CHECKED, 0);
+
+    // LOD check
+    SendMessage(g_lodCheckBox, BM_SETCHECK, BST_UNCHECKED, 0);
+    if (!cfg.lodCheck1)
+        SendMessage(g_lodCheckBox, BM_SETCHECK, BST_CHECKED, 0);
 }
 
 void UpdateConfig(LMCONFIG& cfg)
@@ -454,6 +461,7 @@ void UpdateConfig(LMCONFIG& cfg)
         }
     }
 
+    /*
     // LOD
     bool lodChecked = SendMessage(g_lodCheckBox, BM_GETCHECK, 0, 0);
     if (lodChecked)
@@ -471,6 +479,7 @@ void UpdateConfig(LMCONFIG& cfg)
         _removeConfig("lodmixer", "lod.switch1");
         _removeConfig("lodmixer", "lod.switch2");
     }
+    */
 
     // Controller check
     bool controllerChecked = SendMessage(g_controllerCheckBox, BM_GETCHECK, 0, 0);
@@ -481,6 +490,17 @@ void UpdateConfig(LMCONFIG& cfg)
     else
     {
         _removeConfig("lodmixer", "controller.check.disabled");
+    }
+
+    // LOD check
+    bool lodCheck1 = SendMessage(g_lodCheckBox, BM_GETCHECK, 0, 0);
+    if (lodCheck1)
+    {
+        _setConfig("lodmixer", "lod.check1", wstring(L"0"));
+    }
+    else
+    {
+        _removeConfig("lodmixer", "lod.check1");
     }
 }
 
@@ -510,7 +530,8 @@ int APIENTRY WinMain(HINSTANCE hInstance,
     _getConfig("lodmixer", "lod.switch2", DT_FLOAT, 5, lodmixerConfig);
     _getConfig("lodmixer", "aspect-ratio.correction.enabled", DT_DWORD, 6, lodmixerConfig);
     _getConfig("lodmixer", "controller.check.disabled", DT_DWORD, 7, lodmixerConfig);
-    _getConfig("camera", "angle", DT_DWORD, 8, lodmixerConfig);
+    _getConfig("lodmixer", "lod.check1", DT_DWORD, 8, lodmixerConfig);
+    _getConfig("camera", "angle", DT_DWORD, 9, lodmixerConfig);
 
     UpdateControls(_lmconfig);
 
@@ -559,7 +580,10 @@ void lodmixerConfig(char* pName, const void* pValue, DWORD a)
 		case 7: // Controller check
 			_lmconfig.controllerCheckEnabled = *(DWORD*)pValue != 0;
 			break;
-		case 8: // Camera angle
+		case 8: // Controller check
+			_lmconfig.lodCheck1 = *(DWORD*)pValue != 0;
+			break;
+		case 9: // Camera angle
 			_cameraAngle = *(DWORD*)pValue;
 			break;
 	}

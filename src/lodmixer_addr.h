@@ -8,13 +8,14 @@ BYTE allowedGames[] = {
 	gvPES2009v110,
 };
 
-#define CODELEN 6
+#define CODELEN 7
 enum {
 	C_SETTINGS_CHECK, C_MODE_CHECK,
     C_SETTINGS_READ, C_SETTINGS_RESET, C_VIDEO_CHECK1, C_VIDEO_CHECK2, 
+    C_LODCHECK_1,
 };
 
-#define NOCODEADDR {0,0,0,0,0,0},
+#define NOCODEADDR {0,0,0,0,0,0,0},
 DWORD codeArray[][CODELEN] = { 
     // PES2008 DEMO
     NOCODEADDR
@@ -24,6 +25,7 @@ DWORD codeArray[][CODELEN] = {
 	{
         0xbb8be3, 0xaa9542,
         0, 0, 0, 0,
+        0,
 	},
 	// [Settings] PES2008 PC
     NOCODEADDR
@@ -32,27 +34,32 @@ DWORD codeArray[][CODELEN] = {
 	{
         0xbb89d3, 0xaaa5e2,
         0, 0, 0, 0,
+        0,
 	},
     NOCODEADDR
     // PES2008 1.20
     {
         0xbbd083, 0xaacbc2,
         0, 0, 0, 0,
+        0,
     },
     // PES2009 Demo
     {
         0, 0,
-        0xc7c730, 0xc7c3a4, 0xc79741, 0xc79a34, //0xc7a9d2, 
+        0xc7c730, 0xc7c3a4, 0xc79741, 0xc79a34,
+        0xc2225f,
     },
     // PES2009 
     {
         0, 0xdbffce,
         0xe19460, 0xe190d4, 0xe15e51, 0xe16144,
+        0x92a2ef,
     },
     // PES2009 1.10
     {
         0, 0xdd19be,
         0xe19f80, 0xe19bf4, 0xe16971, 0xe16c64,
+        0x9297ff,
     },
 };
 

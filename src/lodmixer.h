@@ -1,7 +1,7 @@
 // lodmixer.h
 
 #define MODID 101
-#define NAMELONG L"LOD Mixer 8.0.8.0"
+#define NAMELONG L"LOD Mixer 8.1.0.0"
 #define NAMESHORT L"LODMIXER"
 #define DEFAULT_DEBUG 0
 
@@ -23,6 +23,7 @@ typedef struct _LMCONFIG {
     LOD lod;
     bool aspectRatioCorrectionEnabled;
     bool controllerCheckEnabled;
+    bool lodCheck1;
 } LMCONFIG;
 
 #define DEFAULT_WIDTH 0
@@ -34,4 +35,5 @@ typedef struct _LMCONFIG {
 #define GAME_DEFAULT_LOD_SWITCH1 0.095f
 #define GAME_DEFAULT_LOD_SWITCH2 0.070f
 #define DEFAULT_CONTROLLER_CHECK_ENABLED false
+#define DEFAULT_LODCHECK1 true
 
