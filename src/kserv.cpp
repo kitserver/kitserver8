@@ -96,7 +96,7 @@ public:
                 bit != _buffers.end();
                 bit++)
             HeapFree(GetProcessHeap(),0,*bit);
-        LOG(L"buffers deallocated.");
+        TRACE(L"buffers deallocated.");
     }
     UNPACKED_BIN* new_unpacked(size_t size)
     {
@@ -145,6 +145,7 @@ hash_map<int,ORG_TEAM_KIT_INFO> _orgTeamKitInfo;
 hash_map<WORD,WORD> _slotMap;
 hash_map<WORD,WORD> _reverseSlotMap;
 typedef hash_map<WORD,KitCollection>::iterator kc_iter_t;
+CRITICAL_SECTION _cs;
 
 // FUNCTIONS
 HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
@@ -169,7 +170,8 @@ void kservReadEditData(LPCVOID data, DWORD size);
 void kservWriteEditData(LPCVOID data, DWORD size);
 void kservReadReplayData(LPCVOID data, DWORD size);
 void kservWriteReplayData(LPCVOID data, DWORD size);
-void InitSlotMap(TEAM_KIT_INFO* teamKitInfo=NULL);
+void InitSlotMapInThread(TEAM_KIT_INFO* teamKitInfo=NULL);
+DWORD WINAPI InitSlotMap(LPCVOID param=NULL);
 void RelinkKit(WORD teamIndex, WORD slot, KIT_INFO& kitInfo);
 void UndoRelinks();
 bool kservGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize);
@@ -208,12 +210,14 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		
 		copyAdresses();
 		hookFunction(hk_D3D_CreateDevice, initModule);
+        InitializeCriticalSection(&_cs);
 	}
 	
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
 		LOG(L"Shutting down this module...");
         if (_gdb) delete _gdb;
+        DeleteCriticalSection(&_cs);
 	}
 	
 	return true;
@@ -401,7 +405,7 @@ KEXPORT void kservAfterReadNames()
     //DumpSlotsInfo();
 
     // initialize kit slots
-    InitSlotMap();
+    InitSlotMapInThread();
 }
 
 void DumpSlotsInfo()
@@ -426,8 +430,26 @@ void DumpSlotsInfo()
     fclose(f);
 }
 
-void InitSlotMap(TEAM_KIT_INFO* teamKitInfo)
+void InitSlotMapInThread(TEAM_KIT_INFO* teamKitInfo)
 {
+    if (!teamKitInfo)
+        teamKitInfo = (TEAM_KIT_INFO*)(*(DWORD*)data[PLAYERS_DATA] 
+                + data[TEAM_KIT_INFO_OFFSET]);
+
+    DWORD threadId;
+    HANDLE initThread = CreateThread( 
+        NULL,                   // default security attributes
+        0,                      // use default stack size  
+        (LPTHREAD_START_ROUTINE)InitSlotMap, // thread function name
+        teamKitInfo,            // argument to thread function 
+        0,                      // use default creation flags 
+        &threadId);             // returns the thread identifier 
+}
+
+DWORD WINAPI InitSlotMap(LPCVOID param)
+{
+    EnterCriticalSection(&_cs);
+    TEAM_KIT_INFO* teamKitInfo = (TEAM_KIT_INFO*)param;
     if (!teamKitInfo)
         teamKitInfo = (TEAM_KIT_INFO*)(*(DWORD*)data[PLAYERS_DATA] 
                 + data[TEAM_KIT_INFO_OFFSET]);
@@ -519,6 +541,9 @@ void InitSlotMap(TEAM_KIT_INFO* teamKitInfo)
         if (VirtualProtect(pNumSlots, 4, newProtection, &protection)) 
             *pNumSlots = XSLOT_LAST+1;  
     }
+
+    LeaveCriticalSection(&_cs);
+    return 0;
 }
 
 void RelinkKit(WORD teamIndex, WORD slot, KIT_INFO& kitInfo)
