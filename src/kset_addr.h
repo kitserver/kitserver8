@@ -37,6 +37,8 @@ DWORD codeArray[][CODELEN] = {
   NOCODEADDR
   // PES2009 1.10
   NOCODEADDR
+  // PES2009 1.20
+  NOCODEADDR
     // [Settings] PES2009 PC demo
     {
         0, 0, 0, 0x419b90,
@@ -76,6 +78,10 @@ DWORD dataArray[][DATALEN] = {
   // PES2009 DEMO
   NODATAADDR
   // PES2009 
+  NODATAADDR
+  // PES2009 1.10 
+  NODATAADDR
+  // PES2009 1.20 
   NODATAADDR
   // [Settings] PES2009 DEMO
   NODATAADDR

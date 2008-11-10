@@ -7,6 +7,7 @@ BYTE allowedGames[] = {
     gvPES2009demo,
     gvPES2009,
     gvPES2009v110,
+    gvPES2009v120,
 };
 
 #define CODELEN 1
@@ -74,6 +75,10 @@ DWORD dataArray[][DATALEN] = {
     // PES2009 1.10
     {
         0x16cdce0, 0xfd3f48, 0xfb98d4,
+    },
+    // PES2009 1.20
+    {
+        0x1700c80, 0x1013108, 0xf944f8,
     },
 };
 

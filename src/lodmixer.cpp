@@ -43,6 +43,11 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		hInst=hInstance;
 		RegisterKModule(&k_lodmixer);
 
+		if (!checkGameVersion()) {
+			LOG(L"Sorry, your game version isn't supported!");
+			return false;
+		}
+
 		copyAdresses();
 		hookFunction(hk_D3D_Create, initLodMixer);
 	}
@@ -160,6 +165,7 @@ void initLodMixer()
         if (bptr && VirtualProtect(bptr, 4, newProtection, &protection)) {
             bptr[0] = 0x90;  // nop
             bptr[1] = 0x90;  // nop
+            LOG(L"LOD check: lowest lod level disabled.");
         }
     }
 

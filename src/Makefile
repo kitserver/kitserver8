@@ -69,7 +69,7 @@ configs.obj: configs.cpp configs.h
 hooklib.obj: hooklib.cpp hooklib.h
 log.obj: log.cpp log.h
 crc32.obj: crc32.cpp crc32.h
-hook.obj: hook.cpp hook.h
+hook.obj: hook.cpp hook.h hook_addr.h
 
 afs2fs.lib: afs2fs.obj names.obj configs.obj
 afs2fs.dll: afs2fs.lib afsio.lib afs2fs.res
