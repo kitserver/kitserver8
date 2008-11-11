@@ -36,7 +36,7 @@ KMOD k_afs = {MODID, NAMELONG, NAMESHORT, DEFAULT_DEBUG};
 // cache
 #define DEFAULT_FILENAMELEN 64
 #define MAX_ITEMS 10609
-#define MAX_FOLDERS 16
+#define MAX_FOLDERS 18
 #define NUM_SONGS 60
 #define NUM_BALLS 13
 
@@ -77,7 +77,10 @@ wchar_t* GetBinFileName(DWORD afsId, DWORD binId)
         BIN_SIZE_INFO* pBST = ((BIN_SIZE_INFO**)data[BIN_SIZES_TABLE])[afsId];
         if (pBST) 
         {
-            hash_map<string,wchar_t*>::iterator it = _info_cache.find(pBST->relativePathName);
+            hash_map<string,wchar_t*>::iterator it = (afsId!=15)?
+                _info_cache.find(pBST->relativePathName):
+                _info_cache.find(".\\img\\cv0f.img");
+
             if (it != _info_cache.end())
                 _fast_info_cache[afsId].names = it->second;
         }
@@ -380,7 +383,9 @@ bool afsGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize)
         return false;
 
     BIN_SIZE_INFO* pBST = ((BIN_SIZE_INFO**)data[BIN_SIZES_TABLE])[afsId];
-    wchar_t* afsDir = Utf8::ansiToUnicode(pBST->relativePathName);
+    wchar_t* afsDir = (afsId!=15)?
+        Utf8::ansiToUnicode(pBST->relativePathName):
+        Utf8::ansiToUnicode(".\\img\\cv0f.img");
 
     // check for a file
     wchar_t filename[1024] = {0};

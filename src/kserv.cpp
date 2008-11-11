@@ -56,6 +56,14 @@
 #define XSLOT_FIRST 0x5ef
 #define XSLOT_LAST  0x6ee
 
+#define NUM_SLOTS_CV0F 128
+#define CV0F_BIN_FONT_FIRST   134
+#define CV0F_BIN_FONT_LAST    645
+#define CV0F_BIN_NUMBER_FIRST 646
+#define CV0F_BIN_NUMBER_LAST  1157
+#define CV0F_BIN_KIT_FIRST    1172
+#define CV0F_BIN_KIT_LAST     1427
+
 HINSTANCE hInst = NULL;
 KMOD k_kserv = {MODID, NAMELONG, NAMESHORT, DEFAULT_DEBUG};
 
@@ -175,10 +183,10 @@ DWORD WINAPI InitSlotMap(LPCVOID param=NULL);
 void RelinkKit(WORD teamIndex, WORD slot, KIT_INFO& kitInfo);
 void UndoRelinks();
 bool kservGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize);
-bool CreatePipeForKitBin(DWORD binId, HANDLE& handle, DWORD& size);
-bool CreatePipeForFontBin(DWORD binId, HANDLE& handle, DWORD& size);
-bool CreatePipeForNumbersBin(DWORD binId, HANDLE& handle, DWORD& size);
-int GetBinType(DWORD id);
+bool CreatePipeForKitBin(DWORD afsId, DWORD binId, HANDLE& handle, DWORD& size);
+bool CreatePipeForFontBin(DWORD afsId, DWORD binId, HANDLE& handle, DWORD& size);
+bool CreatePipeForNumbersBin(DWORD afsId, DWORD binId, HANDLE& handle, DWORD& size);
+int GetBinType(DWORD afsId, DWORD id);
 void ApplyKitAttributes(map<wstring,Kit>& m, const wchar_t* kitKey, KIT_INFO& ki);
 KEXPORT void ApplyKitAttributes(const map<wstring,Kit>::iterator kiter, KIT_INFO& ki);
 void RGBAColor2KCOLOR(const RGBAColor& color, KCOLOR& kcolor);
@@ -191,6 +199,12 @@ void ApplyDIBTexture(TEXTURE_ENTRY* tex, BITMAPINFO* bitmap);
 void FreePNGTexture(BITMAPINFO* bitmap);
 void ReplaceTexturesInBin(UNPACKED_BIN* bin, wstring files[], size_t n);
 void DumpData(void* data, size_t size);
+
+void kservReadNumSlotsCallPoint1();
+void kservReadNumSlotsCallPoint2();
+void kservReadNumSlotsCallPoint3();
+void kservReadNumSlotsCallPoint4();
+KEXPORT DWORD kservReadNumSlots(DWORD slot);
 
 /*******************/
 /* DLL Entry Point */
@@ -275,6 +289,11 @@ HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
 	//MasterHookFunction(code[C_AFTER_CREATE_TEXTURE], 1, kservAfterCreateTexture);
     HookCallPoint(code[C_AFTER_READ_NAMES], 
             kservAfterReadNamesCallPoint, 6, 5);
+
+    HookCallPoint(code[C_READ_NUM_SLOTS1], kservReadNumSlotsCallPoint1, 6, 1);
+    HookCallPoint(code[C_READ_NUM_SLOTS2], kservReadNumSlotsCallPoint2, 6, 1);
+    HookCallPoint(code[C_READ_NUM_SLOTS3], kservReadNumSlotsCallPoint3, 6, 1);
+    HookCallPoint(code[C_READ_NUM_SLOTS4], kservReadNumSlotsCallPoint4, 6, 0);
 
     // Load GDB
     LOG1S(L"pesDir: {%s}",getPesInfo()->pesDir);
@@ -416,7 +435,7 @@ void DumpSlotsInfo()
     LOG1N(L"teamKitInfo = %08x", (DWORD)teamKitInfo);
 
     wstring filename(getPesInfo()->myDir);
-    filename += L"\\slots.txt";
+    filename += L"\\uni.txt";
     FILE* f = _wfopen(filename.c_str(),L"wt");
     for (int i=0; i<NUM_TEAMS; i++)
     {
@@ -468,7 +487,7 @@ DWORD WINAPI InitSlotMap(LPCVOID param)
             _reverseSlotMap.insert(pair<WORD,WORD>(i,(WORD)slot));
         }
     }
-    LOG2N(L"Normal slots taken: %d/%d", _slotMap.size(), NUM_SLOTS);
+    LOG1N(L"Normal slots taken: %d", _slotMap.size());
 
     // GDB teams
     WORD nextSlot = 0x5ef;
@@ -527,20 +546,10 @@ DWORD WINAPI InitSlotMap(LPCVOID param)
             nextSlot++;
         }
     }
-    LOG2N(L"Total slots taken: %d/%d", _slotMap.size(), NUM_SLOTS*2);
+    LOG1N(L"Total slots taken: %d", _slotMap.size());
 
     // extend cv06.img
     afsioExtendSlots(6, XBIN_KIT_LAST+1);
-
-    // rewrite memory location that holds the number of kit-slots
-    DWORD* pNumSlots = (DWORD*)data[NUM_SLOTS_PTR];
-    if (pNumSlots) 
-    {
-        DWORD protection = 0;
-        DWORD newProtection = PAGE_READWRITE;
-        if (VirtualProtect(pNumSlots, 4, newProtection, &protection)) 
-            *pNumSlots = XSLOT_LAST+1;  
-    }
 
     LeaveCriticalSection(&_cs);
     return 0;
@@ -730,51 +739,79 @@ bool kservGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize)
     {
         // regular slots
         if (BIN_KIT_FIRST <= binId && binId <= BIN_KIT_LAST) 
-            return CreatePipeForKitBin(binId, hfile, fsize);
+            return CreatePipeForKitBin(afsId, binId, hfile, fsize);
         else if (BIN_NUMBER_FIRST <= binId && binId <= BIN_NUMBER_LAST) 
-            return CreatePipeForNumbersBin(binId, hfile, fsize);
+            return CreatePipeForNumbersBin(afsId, binId, hfile, fsize);
         else if (BIN_FONT_FIRST <= binId && binId <= BIN_FONT_LAST) 
-            return CreatePipeForFontBin(binId, hfile, fsize);
+            return CreatePipeForFontBin(afsId, binId, hfile, fsize);
 
         // x-slots
         else if (XBIN_KIT_FIRST <= binId && binId <= XBIN_KIT_LAST) 
-            return CreatePipeForKitBin(binId, hfile, fsize);
+            return CreatePipeForKitBin(afsId, binId, hfile, fsize);
         else if (XBIN_NUMBER_FIRST <= binId && binId <= XBIN_NUMBER_LAST) 
-            return CreatePipeForNumbersBin(binId, hfile, fsize);
+            return CreatePipeForNumbersBin(afsId, binId, hfile, fsize);
         else if (XBIN_FONT_FIRST <= binId && binId <= XBIN_FONT_LAST) 
-            return CreatePipeForFontBin(binId, hfile, fsize);
+            return CreatePipeForFontBin(afsId, binId, hfile, fsize);
     }
+    else if (afsId == 15)
+    {
+        if (CV0F_BIN_KIT_FIRST<=binId && binId<=CV0F_BIN_KIT_LAST) 
+            return CreatePipeForKitBin(afsId, binId, hfile, fsize);
+        else if (CV0F_BIN_NUMBER_FIRST<=binId && binId<=CV0F_BIN_NUMBER_LAST) 
+            return CreatePipeForNumbersBin(afsId, binId, hfile, fsize);
+        else if (CV0F_BIN_FONT_FIRST<=binId && binId<=CV0F_BIN_FONT_LAST) 
+            return CreatePipeForFontBin(afsId, binId, hfile, fsize);
+    }
+
     return false;
 }
 
-int GetBinType(DWORD id)
+int GetBinType(DWORD afsId, DWORD id)
 {
-    // normal slots
-    if (BIN_KIT_FIRST <= id && id <= BIN_KIT_LAST)
+    if (afsId == 6)
     {
-        return BIN_KIT_GK + ((id - BIN_KIT_FIRST)%2);
-    }
-    else if (BIN_FONT_FIRST <= id && id <= BIN_FONT_LAST)
-    {
-        return BIN_FONT_GA + ((id - BIN_FONT_FIRST)%4);
-    }
-    else if (BIN_NUMBER_FIRST <= id && id <= BIN_NUMBER_LAST)
-    {
-        return BIN_NUMS_GA + ((id - BIN_NUMBER_FIRST)%4);
-    }
+        // normal slots
+        if (BIN_KIT_FIRST <= id && id <= BIN_KIT_LAST)
+        {
+            return BIN_KIT_GK + ((id - BIN_KIT_FIRST)%2);
+        }
+        else if (BIN_FONT_FIRST <= id && id <= BIN_FONT_LAST)
+        {
+            return BIN_FONT_GA + ((id - BIN_FONT_FIRST)%4);
+        }
+        else if (BIN_NUMBER_FIRST <= id && id <= BIN_NUMBER_LAST)
+        {
+            return BIN_NUMS_GA + ((id - BIN_NUMBER_FIRST)%4);
+        }
 
-    // x-slots
-    else if (XBIN_KIT_FIRST <= id && id <= XBIN_KIT_LAST)
-    {
-        return BIN_KIT_GK + ((id - XBIN_KIT_FIRST)%2);
+        // x-slots
+        else if (XBIN_KIT_FIRST <= id && id <= XBIN_KIT_LAST)
+        {
+            return BIN_KIT_GK + ((id - XBIN_KIT_FIRST)%2);
+        }
+        else if (XBIN_FONT_FIRST <= id && id <= XBIN_FONT_LAST)
+        {
+            return BIN_FONT_GA + ((id - XBIN_FONT_FIRST)%4);
+        }
+        else if (XBIN_NUMBER_FIRST <= id && id <= XBIN_NUMBER_LAST)
+        {
+            return BIN_NUMS_GA + ((id - XBIN_NUMBER_FIRST)%4);
+        }
     }
-    else if (XBIN_FONT_FIRST <= id && id <= XBIN_FONT_LAST)
+    else if (afsId == 15)
     {
-        return BIN_FONT_GA + ((id - XBIN_FONT_FIRST)%4);
-    }
-    else if (XBIN_NUMBER_FIRST <= id && id <= XBIN_NUMBER_LAST)
-    {
-        return BIN_NUMS_GA + ((id - XBIN_NUMBER_FIRST)%4);
+        if (CV0F_BIN_KIT_FIRST <= id && id <= CV0F_BIN_KIT_LAST)
+        {
+            return BIN_KIT_GK + ((id - CV0F_BIN_KIT_FIRST)%2);
+        }
+        else if (CV0F_BIN_FONT_FIRST <= id && id <= CV0F_BIN_FONT_LAST)
+        {
+            return BIN_FONT_GA + ((id - CV0F_BIN_FONT_FIRST)%4);
+        }
+        else if (CV0F_BIN_NUMBER_FIRST <= id && id <= CV0F_BIN_NUMBER_LAST)
+        {
+            return BIN_NUMS_GA + ((id - CV0F_BIN_NUMBER_FIRST)%4);
+        }
     }
 
     return -1;
@@ -822,14 +859,17 @@ bool FindTeamInGDB(WORD teamIndex, KitCollection*& kcol)
 /**
  * Create a pipe and write a dynamically created BIN into it.
  */
-bool CreatePipeForKitBin(DWORD binId, HANDLE& handle, DWORD& size)
+bool CreatePipeForKitBin(DWORD afsId, DWORD binId, HANDLE& handle, DWORD& size)
 {
     // first step: determine the team, and see if we have
     // this team in the GDB
     WORD slot = (binId - BIN_KIT_FIRST) >> 1;
+    if (afsId==15)
+        slot = NUM_SLOTS + ((binId - CV0F_BIN_KIT_FIRST) >> 1);
     WORD teamIndex = GetTeamIndexBySlot(slot);
     KitCollection* kcol;
-    if (!FindTeamInGDB(teamIndex, kcol) && binId <= BIN_KIT_LAST)
+    if (!FindTeamInGDB(teamIndex, kcol) && 
+            ((afsId==6 && binId <= BIN_KIT_LAST)||afsId==15))
         return false; // not in GDB: rely on afs kit
 
     // create the unpacked bin-data in memory
@@ -874,15 +914,21 @@ bool CreatePipeForKitBin(DWORD binId, HANDLE& handle, DWORD& size)
         te->palette[0].a = 0xff;
     }
 
-    int gkShift = (binId % 2)*2;
     wstring files[2];
-    wstring kitFolder[] = {L"ga",L"gb",L"pa",L"pb"};
     for (int i=0; i<2; i++)
     {
         wstring filename(getPesInfo()->gdbDir);
-        filename += L"GDB\\uni\\" + kcol->foldername 
-                + L"\\"+kitFolder[i+gkShift]+L"\\kit.png";
-        files[i] = filename;
+        filename += L"GDB\\uni\\" + kcol->foldername;
+        switch (GetBinType(afsId, binId))
+        {
+            case BIN_KIT_GK:
+                filename += (i==0)?L"\\ga":L"\\gb";
+                break;
+            case BIN_KIT_PL:
+                filename += (i==0)?L"\\pa":L"\\pb";
+                break;
+        }
+        files[i] = filename + L"\\kit.png";
     }
     ReplaceTexturesInBin(bm._unpacked, files, 2);
     //DumpData(bm._unpacked, unpackedSize);
@@ -920,14 +966,17 @@ bool CreatePipeForKitBin(DWORD binId, HANDLE& handle, DWORD& size)
 /**
  * Create a pipe and write a dynamically created BIN into it.
  */
-bool CreatePipeForFontBin(DWORD binId, HANDLE& handle, DWORD& size)
+bool CreatePipeForFontBin(DWORD afsId, DWORD binId, HANDLE& handle, DWORD& size)
 {
     // first step: determine the team, and see if we have
     // this team in the GDB
     WORD slot = (binId - BIN_FONT_FIRST) >> 2;
+    if (afsId==15)
+        slot = NUM_SLOTS + ((binId - CV0F_BIN_FONT_FIRST) >> 2);
     WORD teamIndex = GetTeamIndexBySlot(slot);
     KitCollection* kcol;
-    if (!FindTeamInGDB(teamIndex, kcol) && binId <= BIN_FONT_LAST)
+    if (!FindTeamInGDB(teamIndex, kcol) && 
+            ((afsId==6 && binId <= BIN_FONT_LAST)||afsId==15))
         return false; // not in GDB: rely on afs kit
 
     // create the unpacked bin-data in memory
@@ -969,7 +1018,7 @@ bool CreatePipeForFontBin(DWORD binId, HANDLE& handle, DWORD& size)
 
     wstring filename(getPesInfo()->gdbDir);
     filename += L"GDB\\uni\\"+kcol->foldername;
-    switch (GetBinType(binId))
+    switch (GetBinType(afsId, binId))
     {
         case BIN_FONT_GA:
             filename += L"\\ga\\font.png";
@@ -1023,14 +1072,17 @@ bool CreatePipeForFontBin(DWORD binId, HANDLE& handle, DWORD& size)
 /**
  * Create a pipe and write a dynamically created BIN into it.
  */
-bool CreatePipeForNumbersBin(DWORD binId, HANDLE& handle, DWORD& size)
+bool CreatePipeForNumbersBin(DWORD afsId, DWORD binId, HANDLE& handle, DWORD& size)
 {
     // first step: determine the team, and see if we have
     // this team in the GDB
     WORD slot = (binId - BIN_NUMBER_FIRST) >> 2;
+    if (afsId==15)
+        slot = NUM_SLOTS + ((binId - CV0F_BIN_NUMBER_FIRST) >> 2);
     WORD teamIndex = GetTeamIndexBySlot(slot);
     KitCollection* kcol;
-    if (!FindTeamInGDB(teamIndex, kcol) && binId <= BIN_NUMBER_LAST)
+    if (!FindTeamInGDB(teamIndex, kcol) && 
+            ((afsId==6 && binId <= BIN_NUMBER_LAST)||afsId==15))
         return false; // not in GDB: rely on afs kit
 
     // create the unpacked bin-data in memory
@@ -1098,7 +1150,7 @@ bool CreatePipeForNumbersBin(DWORD binId, HANDLE& handle, DWORD& size)
 
     wstring dirname(getPesInfo()->gdbDir);
     dirname += L"GDB\\uni\\"+kcol->foldername;
-    switch (GetBinType(binId))
+    switch (GetBinType(afsId, binId))
     {
         case BIN_NUMS_GA:
             dirname += L"\\ga\\";
@@ -1353,5 +1405,116 @@ void FreePNGTexture(BITMAPINFO* bitmap)
 	if (bitmap != NULL) {
         pngdib_p2d_free_dib(NULL, (BITMAPINFOHEADER*)bitmap);
 	}
+}
+
+void kservReadNumSlotsCallPoint1()
+{
+    __asm {
+        pushfd 
+        push ebp
+        push eax
+        push ebx
+        push edx
+        push esi
+        push edi
+        shr eax,2
+        push eax // slot
+        call kservReadNumSlots
+        add esp,4 // pop parameters
+        mov ecx, eax
+        pop edi
+        pop esi
+        pop edx
+        pop ebx
+        pop eax
+        pop ebp
+        popfd
+        retn
+    }
+}
+
+void kservReadNumSlotsCallPoint2()
+{
+    __asm {
+        pushfd 
+        push ebp
+        push eax
+        push ebx
+        push ecx
+        push esi
+        push edi
+        shr eax,2
+        push eax // slot
+        call kservReadNumSlots
+        add esp,4 // pop parameters
+        mov edx, eax
+        pop edi
+        pop esi
+        pop ecx
+        pop ebx
+        pop eax
+        pop ebp
+        popfd
+        retn
+    }
+}
+
+void kservReadNumSlotsCallPoint3()
+{
+    __asm {
+        pushfd 
+        push ebp
+        push eax
+        push ebx
+        push ecx
+        push edx
+        push edi
+        shr eax,2
+        push eax // slot
+        call kservReadNumSlots
+        add esp,4 // pop parameters
+        mov esi, eax
+        pop edi
+        pop edx
+        pop ecx
+        pop ebx
+        pop eax
+        pop ebp
+        popfd
+        retn
+    }
+}
+
+void kservReadNumSlotsCallPoint4()
+{
+    __asm {
+        pushfd 
+        push ebp
+        push ebx
+        push ecx
+        push edx
+        push esi
+        push edi
+        sar edx,1
+        push edx // slot
+        call kservReadNumSlots
+        add esp,4 // pop parameters
+        pop edi
+        pop esi
+        pop edx
+        pop ecx
+        pop ebx
+        pop ebp
+        popfd
+        retn
+    }
+}
+
+KEXPORT DWORD kservReadNumSlots(DWORD slot)
+{
+    DWORD* pNumSlots = (DWORD*)data[NUM_SLOTS_PTR];
+    if (slot >= XSLOT_FIRST)
+        return XSLOT_LAST+1;
+    return *pNumSlots;
 }
 

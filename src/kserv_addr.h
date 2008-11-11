@@ -5,12 +5,13 @@ BYTE allowedGames[] = {
     gvPES2009v120,
 };
 
-#define CODELEN 3
+#define CODELEN 7
 enum {
 	C_KIT_VTABLE, C_AFTER_CREATE_TEXTURE, C_AFTER_READ_NAMES,
+    C_READ_NUM_SLOTS1, C_READ_NUM_SLOTS2, C_READ_NUM_SLOTS3, C_READ_NUM_SLOTS4,
 };
 
-#define NOCODEADDR {0,0,0},
+#define NOCODEADDR {0,0,0,0,0,0,0},
 DWORD codeArray[][CODELEN] = { 
 	// PES2008
     NOCODEADDR
@@ -26,14 +27,21 @@ DWORD codeArray[][CODELEN] = {
     // PES2009
     {
         0x1015ebc, 0x91407a, 0x8b73e5,
+        0, 0, 0, 0,
     },
     // PES2009 v1.10
     {
         0x1015f4c, 0x913eea, 0x8b6f05,
+        0, 0, 0, 0,
     },
     // PES2009 v1.20
     {
         0x1030498, 0xdd722a, 0xe10255,
+
+        0x806bdb, //shr2
+        0x806c7e, //shr2
+        0x80728c, //shr2
+        0xec2782, //sar1
     },
 };
 
