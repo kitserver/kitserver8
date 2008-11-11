@@ -49,7 +49,7 @@
 Version history: <a href="history.txt">history.txt</a><br />
 </div>
 <div>
-November 9, 2008 - <b>Kitserver 8.1.0</b><br />
+November 10, 2008 - <b>Kitserver 8.1.1</b><br />
 </div>
 <p class="note">
 The most up-to-date version of this documentation, and the translations to many languages, are located here: <a href="http://kitserver.ath.cx/docs">http://kitserver.ath.cx/docs/</a>
@@ -62,22 +62,22 @@ Below is a quick summary of the available features. Follow the link in the left 
 </p>
 
 <table>
-    <tr><td><a href="#kserv">Kserv 8.1.0</a></td>
+    <tr><td><a href="#kserv">Kserv 8.1.1</a></td>
         <th><b>kserv.dll</b></th>
         <td>Organize your kits into GDB, and assign each team its own kits.</td>
     </tr>
-    <tr><td><a href="#afs2fs">AFS2FS 8.0.8</a></td>
+    <tr><td><a href="#afs2fs">AFS2FS 8.1.1</a></td>
         <th><b>afs2fs.dll</b></th>
         <td>Manage AFS (.img) game content using files and folders: much easier and quicker to install/remove patches, without the need modify *.img files</td>
     </tr>
-    <tr><td><a href="#lodmixer">LOD Mixer 8.1.0</a></td>
+    <tr><td><a href="#lodmixer">LOD Mixer 8.1.1</a></td>
         <th><b>lodmixer.dll</b></th>
         <td>Select any quality settings (Low,Medium,High); various tweaks to graphics and game options: 
 Any window resolution supported, hidden fullscreen resolutions unlocked;
 Manual/Automatic aspect ratio correction. LOD adjustment is available too.
         </td>
     </tr>
-    <tr><td><a href="#camera">Camera module 8.0.8</a></td>
+    <tr><td><a href="#camera">Camera module 8.1.1</a></td>
         <th><b>camera.dll</b></th>
         <td>Increase the camera viewing angle for Normal and Wide cameras, and enjoy new playing experience.</td>
     </tr>
@@ -163,6 +163,7 @@ Each module can have its own configuration section, which starts with <b>[<i>mod
 <p>To disable a particular module - just comment out the corresponding line in the <b>[kload]</b> section by putting a '#' symbol at the beginning. (Or you can delete that line altogether.)
 </p>
 
+<p class="note">The order of the DLLs is important. In particular: <b>zlib1.dll</b>, <b>libpng13.dll</b>, <b>afsio.dll</b> must be loaded in that order before <b>kserv.dll</b>; <b>afs2fs.dll</b> after <b>kserv.dll</b>. Only in very rare situations you should try re-arranging the DLLs.</p>
 
 <h5>3.3. Configuration tool - config.exe</h5>
 
@@ -171,6 +172,27 @@ Each module can have its own configuration section, which starts with <b>[<i>mod
 
 <p>
 <img src="config.png" style="border:0"/>
+</p>
+
+<h5>3.4. GDB location</h5>
+<p>
+GDB is a collection of different types of game data. In the current release, those include: kits, faces and hair files. In the future, there will also be stadiums and possibly boots. The GDB is essentially a simple hierarchy of folders: the root folder itself MUST be named <b>GDB</b>, inside it there is a folder for kits: <b>uni</b>, (and in the future releases, folders for faces and hair: <b>faces</b>, <b>stadiums</b>, <b>balls</b>, etc.).
+</p>
+<p>By default the <b>GDB</b> folder itself is located inside kitserver folder, but you can put it anywhere on your hard disk. To do that, you would need to use "gdb.dir" setting in the [kload] section of the config.txt file, like this:
+</p>
+
+<pre>
+[kload]
+gdb.dir = "c:\mypesfiles\"
+...
+</pre>
+
+<p class="note">Two important things to remember:</p>
+<p>
+<ul>
+    <li>You need to specify the folder that contains "GDB", not the "GDB" folder itself. In other words, if the full pathname is <b>c:\mypesfiles\GDB"</b>, then the option must be: <span style="color:#080"><b>gdb.dir = "c:\mypesfiles\"</b></span></li>
+    <li>The path MUST end with the backslash ("\") symbol, as in the example above.</li>
+</ul>
 </p>
 
 <a name="kserv"><br /></a>
