@@ -81,6 +81,10 @@ Manual/Automatic aspect ratio correction. LOD adjustment is available too.
         <th><b>camera.dll</b></th>
         <td>Increase the camera viewing angle for Normal and Wide cameras, and enjoy new playing experience.</td>
     </tr>
+    <tr><td><a href="#time">Time module 8.1.1</a></td>
+        <th><b>time.dll</b></th>
+        <td>Change match time for Exhibition and Cup/League/ML/CL games.</td>
+    </tr>
 </table>
 
 <h3>2. Installation / Removal</h3>
@@ -139,21 +143,24 @@ In the <b>kitserver</b> folder, there is the program's main configuration file -
 <pre>
 [afs2fs]
 debug = 1
-
-[afsio]
-debug = 1
+img.dir = "c:\juce\pes2009\"
 
 [camera]
 angle = 30
 
 [kload]
+dll = zlib1.dll
+dll = libpng13.dll
 dll = afsio.dll
+dll = kserv.dll
 dll = afs2fs.dll
 dll = camera.dll
 dll = lodmixer.dll
+dll = time.dll
 
 [lodmixer]
 aspect-ratio.correction.enabled = 1
+lod.check1 = 0
 </pre>
 
 <p>
@@ -573,6 +580,24 @@ your config.txt file manually, like this:
 <pre>
 [camera]
 angle = 100
+</pre>
+</p>
+
+<a name="time"><br /></a>
+<p><a class="backlink" href="#">Top</a></p>
+<h3>8. Time expander (time.dll)</h3>
+
+<p>
+This tiny module allows to stretch the length of the match to normal 90 minutes, if you want, or even beyond that: making the seconds flow slower than normal. Also, another extreme is setting the match time to 1 minute. This is a whole new experience too: you have to really treasure the ball - keep posession, or you risk not getting it back at all, before the final whistle! Also, if you get a scoring chance, better put it away, because chances are it'll be the only one you get.
+</p>
+
+<p>
+Set the time for an Exhibition Match using <b>exhibition.time</b> setting. For any other matches (Cup/League/Master League), use <b>cup.time</b>:
+
+<pre>
+[time]
+exhibition.time = 90
+cup.time = 1
 </pre>
 </p>
 

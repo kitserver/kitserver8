@@ -81,6 +81,10 @@ Manual/Automatic aspect ratio correction. LOD adjustment is available too.
         <th><b>camera.dll</b></th>
         <td>Позволяет увеличить угол обзора для камер Normal и Wide.</td>
     </tr>
+    <tr><td><a href="#time">Time module 8.1.1</a></td>
+        <th><b>time.dll</b></th>
+        <td>Позволяет менять продолжительность матча на любое количество минут от 1 до 255.</td>
+    </tr>
 </table>
 
 <h3>2. Установка и удаление</h3>
@@ -152,6 +156,7 @@ dll = kserv.dll
 dll = afs2fs.dll
 dll = camera.dll
 dll = lodmixer.dll
+dll = time.dll
 
 [lodmixer]
 aspect-ratio.correction.enabled = 1
@@ -579,6 +584,24 @@ angle = 30
 </pre>
 </p>
 
+<a name="time"><br /></a>
+<p><a class="backlink" href="#">Наверх</a></p>
+<h3>8. Time expander (time.dll)</h3>
+
+<p>
+Этим крошечным модулем можно изменить продолжительность матча. Можно выставить значение на 90 минут, как в настоящем футболе, или даже больше (тогда секунды будут идти медленнее, чем обычно). Также довольно интерсное занятие - матч длиной в 1 минуту. Мяч лучше от себя не отпускать, иначе вы можете больше вовсе не увидеть его у своей команды до финального свистка! Если у вас есть возможность забить, лучше не тратить её впустую - почти наверняка это будет ваша первая и последняя попытка за весь матч.
+</p>
+
+<p>
+Для установки товарищеских матчей ("Exhibition") используйте атрибут <b>exhibition.time</b>. Для остальных режимов игры ("Cup", "League", "Master League", "UEFA Champions League") используется <b>cup.time</b>:
+
+<pre>
+[time]
+exhibition.time = 90
+cup.time = 1
+</pre>
+</p>
+
 <div style="height:20px"></div>
 
 <h2>Над программой работали</h2>
@@ -587,7 +610,7 @@ angle = 30
 Бета-тестинг: пользователи форумов Evo-Web и PesWe.com.<br />
 Идеи модуля <i>afs2fs</i>: <b>Str@teG</b><br />
 <br/>
-Перевод руководства на русский язык: <b>ЧингизКан</b></p>
+Перевод руководства на русский язык: <b>ЧингизКан</b>, <b>juce</b></p>
 
 <p>
 Отдельная благодарность администраторам сайта <a href="http://www.peswe.com">PesWe.com</a> и юзерам <a href="http://www.peswe.com/fm">форума PesWe.com</a>.
