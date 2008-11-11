@@ -5,8 +5,9 @@ Kitserver 8 HISTORY notes
 2008-11-11
 ----------
 v8.1.2
-- fixed crashes and other problems that were happening 
-  game upgraded to 1.20, and update package downloaded.
+- fixed crashes and other problems that were happening if
+  the game was upgraded to 1.20 and update package downloaded.
+- fixed ball names bug in v8.1.1
 
 
 2008-11-10

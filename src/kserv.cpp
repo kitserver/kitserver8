@@ -551,6 +551,19 @@ DWORD WINAPI InitSlotMap(LPCVOID param)
     // extend cv06.img
     afsioExtendSlots(6, XBIN_KIT_LAST+1);
 
+    if (getPesInfo()->gameVersion < gvPES2009v120)
+    {
+        // rewrite memory location that holds the number of kit-slots
+        DWORD* pNumSlots = (DWORD*)data[NUM_SLOTS_PTR];
+        if (pNumSlots) 
+        {
+            DWORD protection = 0;
+            DWORD newProtection = PAGE_READWRITE;
+            if (VirtualProtect(pNumSlots, 4, newProtection, &protection)) 
+                *pNumSlots = XSLOT_LAST+1;  
+        }
+    }
+
     LeaveCriticalSection(&_cs);
     return 0;
 }
