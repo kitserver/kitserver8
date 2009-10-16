@@ -98,6 +98,24 @@ DWORD codeArray[][CODELEN] = {
         0xc53221, 0xc52dad,
         0, 0, //TOFIX
   },
+  // [Settings] PES2009 PC demo
+  NOCODEADDR
+  // [Settings] PES2009 PC 
+  NOCODEADDR
+  // PES2009 PC 1.30
+  NOCODEADDR
+  // PES2009 PC 1.40
+  NOCODEADDR
+  // PES2010 DEMO
+  {
+		0xb91895,
+		0, 0, 
+		0, 0, 
+		0, 0, 
+        0, 0,
+        0, 0,
+        0, 0,
+  },
 };
 
 #define DATALEN 12
@@ -181,6 +199,16 @@ DWORD dataArray[][DATALEN] = {
         0x166ff14, 0x0, 0x166ff04, //TOFIX
         0x392f10, 0x3fa288,
     },
+    // [Settings] PES2009 PC demo
+	NODATAADDR
+    // [Settings] PES2009 PC
+	NODATAADDR
+    // PES2009 PC 1.30
+	NODATAADDR
+    // PES2009 PC 1.40
+	NODATAADDR
+    // PES2010 DEMO
+    NODATAADDR
 };
 
 #define LTFPLEN 15
@@ -222,6 +250,14 @@ BYTE ltfpPatchArray[][LTFPLEN] = {
     // PES2009 1.10
 	NOLTFPADDR //TODO
     // PES2009 1.20
+	NOLTFPADDR //TODO
+    // [Settings] PES2009 DEMO
+	NOLTFPADDR //TODO
+    // [Settings] PES2009
+	NOLTFPADDR //TODO
+    // PES2009 1.30
+	NOLTFPADDR //TODO
+    // PES2009 1.40
 	NOLTFPADDR //TODO
 };
 

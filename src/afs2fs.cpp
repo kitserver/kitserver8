@@ -246,7 +246,8 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
                 it++)
             if (it->second) HeapFree(GetProcessHeap(), 0, it->second);
 
-        delete _songs;
+        if (_songs) delete _songs;
+        if (_balls) delete _balls;
 	}
 	
 	return true;
@@ -290,59 +291,62 @@ HRESULT STDMETHODCALLTYPE initModule(IDirect3D9* self, UINT Adapter,
 
 	TRACE(L"Hooking done.");
 
-    wstring songMapFile(getPesInfo()->myDir);
-    songMapFile += L"\\names\\songs.txt";
-    _songs = new song_map_t(songMapFile);
-    // support older location too:
-    if (_songs->_songMap.size()==0)
+    if (getPesInfo()->gameVersion != gvPES2010demo)
     {
-        delete _songs;
-        songMapFile = getPesInfo()->myDir;
-        songMapFile += L"\\songs.txt";
+        wstring songMapFile(getPesInfo()->myDir);
+        songMapFile += L"\\names\\songs.txt";
         _songs = new song_map_t(songMapFile);
-    }
-
-    LOG1N(L"Songs-map read (size=%d)",_songs->_songMap.size());
-
-    // apply songs info
-    BYTE* bptr = (BYTE*)data[SONGS_INFO_TABLE];
-    DWORD protection = 0;
-    DWORD newProtection = PAGE_READWRITE;
-    if (VirtualProtect(bptr, NUM_SONGS*sizeof(SONG_STRUCT), newProtection, &protection)) 
-    {
-        SONG_STRUCT* ss = (SONG_STRUCT*)data[SONGS_INFO_TABLE];
-        for (int i=0; i<NUM_SONGS; i++)
+        // support older location too:
+        if (_songs->_songMap.size()==0)
         {
-            hash_map<WORD,SONG_STRUCT>::iterator it = _songs->_songMap.find(ss[i].binId);
-            if (it != _songs->_songMap.end())
+            delete _songs;
+            songMapFile = getPesInfo()->myDir;
+            songMapFile += L"\\songs.txt";
+            _songs = new song_map_t(songMapFile);
+        }
+
+        LOG1N(L"Songs-map read (size=%d)",_songs->_songMap.size());
+
+        // apply songs info
+        BYTE* bptr = (BYTE*)data[SONGS_INFO_TABLE];
+        DWORD protection = 0;
+        DWORD newProtection = PAGE_READWRITE;
+        if (VirtualProtect(bptr, NUM_SONGS*sizeof(SONG_STRUCT), newProtection, &protection)) 
+        {
+            SONG_STRUCT* ss = (SONG_STRUCT*)data[SONGS_INFO_TABLE];
+            for (int i=0; i<NUM_SONGS; i++)
             {
-                ss[i].title = it->second.title;
-                ss[i].author = it->second.author;
-                LOG1N(L"Set title/author info for song with binId=%d",ss[i].binId);
+                hash_map<WORD,SONG_STRUCT>::iterator it = _songs->_songMap.find(ss[i].binId);
+                if (it != _songs->_songMap.end())
+                {
+                    ss[i].title = it->second.title;
+                    ss[i].author = it->second.author;
+                    LOG1N(L"Set title/author info for song with binId=%d",ss[i].binId);
+                }
             }
         }
-    }
 
-    wstring ballMapFile(getPesInfo()->myDir);
-    ballMapFile += L"\\names\\balls.txt";
-    _balls = new ball_map_t(ballMapFile);
+        wstring ballMapFile(getPesInfo()->myDir);
+        ballMapFile += L"\\names\\balls.txt";
+        _balls = new ball_map_t(ballMapFile);
 
-    LOG1N(L"Balls-map read (size=%d)",_balls->_ballMap.size());
+        LOG1N(L"Balls-map read (size=%d)",_balls->_ballMap.size());
 
-    // apply balls info
-    bptr = (BYTE*)data[BALLS_INFO_TABLE];
-    protection = 0;
-    newProtection = PAGE_READWRITE;
-    if (VirtualProtect(bptr, NUM_BALLS*sizeof(char**), newProtection, &protection)) 
-    {
-        char** names = (char**)data[BALLS_INFO_TABLE];
-        for (int i=1; i<=NUM_BALLS; i++)
+        // apply balls info
+        bptr = (BYTE*)data[BALLS_INFO_TABLE];
+        protection = 0;
+        newProtection = PAGE_READWRITE;
+        if (VirtualProtect(bptr, NUM_BALLS*sizeof(char**), newProtection, &protection)) 
         {
-            hash_map<WORD,BALL_STRUCT>::iterator it = _balls->_ballMap.find(i);
-            if (it != _balls->_ballMap.end())
+            char** names = (char**)data[BALLS_INFO_TABLE];
+            for (int i=1; i<=NUM_BALLS; i++)
             {
-                names[i-1] = it->second.name;
-                LOG1N(L"Set name for ball #%d",i);
+                hash_map<WORD,BALL_STRUCT>::iterator it = _balls->_ballMap.find(i);
+                if (it != _balls->_ballMap.end())
+                {
+                    names[i-1] = it->second.name;
+                    LOG1N(L"Set name for ball #%d",i);
+                }
             }
         }
     }
@@ -381,6 +385,7 @@ bool afsGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize)
     wchar_t* file = GetBinFileName(afsId, binId);
     if (!file || file[0]=='\0')  // quick check
         return false;
+    LOG1S(L"file = {%s}",file);
 
     BIN_SIZE_INFO* pBST = ((BIN_SIZE_INFO**)data[BIN_SIZES_TABLE])[afsId];
     wchar_t* afsDir = (afsId!=15)?
@@ -388,7 +393,8 @@ bool afsGetFileInfo(DWORD afsId, DWORD binId, HANDLE& hfile, DWORD& fsize)
         Utf8::ansiToUnicode(".\\img\\cv0f.img");
 
     // check for a file
-    wchar_t filename[1024] = {0};
+    wchar_t filename[1024];
+    ZeroMemory(filename, sizeof(wchar_t)*1024);
     swprintf(filename,L"%s%s\\%s", _imgDir, afsDir, file);
     Utf8::free(afsDir);
 
